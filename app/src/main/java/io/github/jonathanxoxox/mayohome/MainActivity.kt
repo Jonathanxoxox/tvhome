@@ -109,6 +109,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         vm.onResume()
+        // Selbstheilung: Hat Android den Home-Wächter abgeschaltet, ihn wieder eintragen (nur mit ADB-Erlaubnis).
+        if (vm.settings.value.homeOverride && !Launcher.isGuardEnabled(this)) Launcher.enableGuard(this)
     }
 
     override fun onDestroy() {

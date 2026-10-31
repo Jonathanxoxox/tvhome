@@ -566,8 +566,14 @@ private fun LauncherSection(vm: HomeViewModel, s: Settings, onRequestTvPermissio
             },
         )
         SettingRow("Home-Taste immer zu Mayo Home", "Nutzt den Home-Wächter in den Bedienungshilfen", toggle = s.homeOverride) { vm.updateSettings { it.copy(homeOverride = !it.homeOverride) } }
-        SettingRow("Home-Wächter einschalten", "Bedienungshilfen → Mayo Home: Home-Taste", value = if (guard) "an" else "aus") {
-            Launcher.openSystemPage(context, AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS)
+        val canWrite = remember(tick) { Launcher.canWriteSecure(context) }
+        SettingRow(
+            "Home-Wächter einschalten",
+            if (canWrite) "Mayo Home trägt sich selbst ein, andere Dienste bleiben an" else "Bedienungshilfen → Mayo Home: Home-Taste",
+            value = if (guard) "an" else "aus",
+        ) {
+            if (Launcher.enableGuard(context)) { tick++; toast(context, "Home-Wächter ist an.") }
+            else Launcher.openSystemPage(context, AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS)
         }
         SettingRow("Standard-Startbildschirm", value = if (isDefault) "Mayo Home" else "anderer") {
             Launcher.openSystemPage(context, AndroidSettings.ACTION_HOME_SETTINGS)
@@ -586,7 +592,7 @@ private fun LauncherSection(vm: HomeViewModel, s: Settings, onRequestTvPermissio
         SettingRow("Kanäle der Apps neu laden") { vm.refreshTv(); vm.refreshApps() }
         SectionTitle("Per ADB (falls ein Menü fehlt)")
         InfoBox(
-            "Home-Wächter einschalten:\n${Launcher.guardAdbCommand(context)}\nadb shell settings put secure accessibility_enabled 1\n\n" +
+            "Home-Wächter (einmal erlauben, danach schaltet Mayo Home ihn selbst ein, ohne Projectivy oder Button Mapper abzuschalten):\n${Launcher.guardAdbCommand(context)}\n\n" +
                 "Mayo Home zum Standard machen:\n${Launcher.homeAdbCommand(context)}\n\n" +
                 "Start aus dem Hintergrund:\n${Launcher.overlayAdbCommand(context)}\n\n" +
                 "TV-Programmdaten:\n${Launcher.epgAdbCommand(context)}",

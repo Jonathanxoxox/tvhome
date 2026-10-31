@@ -50,11 +50,36 @@ object Launcher {
 
     fun canDrawOverlays(context: Context): Boolean = Settings.canDrawOverlays(context)
 
-    /** Die Zeile, die man per ADB eingibt, um den Home-Wächter ohne Menü einzuschalten. */
-    fun guardAdbCommand(context: Context): String {
-        val me = ComponentName(context, HomeGuardService::class.java).flattenToShortString()
-        return "adb shell settings put secure enabled_accessibility_services $me"
+    /** Darf Mayo Home die Bedienungshilfen selbst einschalten? (einmal per ADB erlaubt) */
+    fun canWriteSecure(context: Context): Boolean =
+        context.checkSelfPermission(WRITE_SECURE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Trägt den Home-Wächter in die Liste der Bedienungshilfen ein und lässt alle anderen (Projectivy,
+     * Button Mapper …) stehen. Geht nur mit der per ADB erteilten Berechtigung; sonst false.
+     */
+    fun enableGuard(context: Context): Boolean {
+        if (!canWriteSecure(context)) return false
+        return try {
+            val resolver = context.contentResolver
+            val me = ComponentName(context, HomeGuardService::class.java)
+            val parts = Settings.Secure.getString(resolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+                .split(':').filter { it.isNotBlank() }
+            if (parts.none { ComponentName.unflattenFromString(it) == me }) {
+                Settings.Secure.putString(resolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, (parts + me.flattenToString()).joinToString(":"))
+            }
+            Settings.Secure.putInt(resolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
+
+    /** Einmal per ADB: danach schaltet Mayo Home den Home-Wächter selbst ein, ohne andere Dienste anzufassen. */
+    fun guardAdbCommand(context: Context): String =
+        "adb shell pm grant ${context.packageName} $WRITE_SECURE"
+
+    private const val WRITE_SECURE = "android.permission.WRITE_SECURE_SETTINGS"
 
     fun homeAdbCommand(context: Context): String =
         "adb shell cmd package set-home-activity ${context.packageName}/.MainActivity"

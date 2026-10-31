@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: InterLocal; font-weight: 700; src: url("../app/src/main/res/font/inter_bold.ttf"); }
+@font-face { font-family: InterLocal; font-weight: 500; src: url("../app/src/main/res/font/inter_medium.ttf"); }
+body { margin: 0; background: transparent; }
+#banner { width: 640px; height: 360px; }
+#icon { width: 432px; height: 432px; }
+</style>
+</head>
+<body>
+<!-- TV-Banner 640 × 360 (xhdpi für 320 × 180 dp) -->
+<svg id="banner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E4A50"></stop>
+      <stop offset="1" stop-color="#082C30"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"></rect>
+  <g transform="translate(70 92)">
+    <path d="M18 78 L88 18 L158 78" fill="none" stroke="#F5F7F7" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></path>
+    <rect x="22" y="78" width="132" height="92" rx="18" fill="none" stroke="#F5F7F7" stroke-width="16"></rect>
+    <path d="M76 104 L76 146 L112 125 Z" fill="#5FE0D2" stroke="#5FE0D2" stroke-width="6" stroke-linejoin="round"></path>
+  </g>
+  <text x="276" y="200" font-family="InterLocal" font-weight="700" font-size="76" letter-spacing="-3" fill="#F5F7F7">mayo</text>
+  <circle cx="478" cy="193" r="9" fill="#5FE0D2"></circle>
+  <text x="280" y="246" font-family="InterLocal" font-weight="500" font-size="34" letter-spacing="8" fill="#BFE3E0">HOME</text>
+</svg>
+<!-- App-Icon 432 × 432 (xxxhdpi für 108 dp) -->
+<svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432">
+  <rect width="432" height="432" fill="url(#bg)"></rect>
+  <g transform="translate(96 104)">
+    <path d="M18 92 L120 14 L222 92" fill="none" stroke="#F5F7F7" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"></path>
+    <rect x="24" y="92" width="192" height="132" rx="26" fill="none" stroke="#F5F7F7" stroke-width="24"></rect>
+    <path d="M102 128 L102 188 L154 158 Z" fill="#5FE0D2" stroke="#5FE0D2" stroke-width="8" stroke-linejoin="round"></path>
+  </g>
+</svg>
+</body>
+</html>

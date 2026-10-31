@@ -18,6 +18,11 @@
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <!-- Erlaubt den Start aus dem Hintergrund (nach dem Einschalten), falls per ADB freigegeben. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Nur per ADB erteilbar: damit trägt Mayo Home den Home-Wächter selbst in die Bedienungshilfen
+         ein, ohne andere Dienste (Projectivy, Button Mapper) abzuschalten. -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <!-- Kanäle und "Weiter schauen" der anderen Apps lesen, wie Projectivy. -->
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
     <!-- Ohne diese Berechtigung liefert Android nur die eigenen Kanäle; mit ihr alle durchsuchbaren

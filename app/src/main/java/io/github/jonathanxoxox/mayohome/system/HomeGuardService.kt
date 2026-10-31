@@ -17,10 +17,15 @@ class HomeGuardService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         // Der Dienst startet beim Hochfahren mit; das ist der verlässlichste Moment für "beim Einschalten öffnen".
-        if (SystemClock.elapsedRealtime() < BOOT_WINDOW_MS) BootStarter.runAsync(this, source = "guard")
+        // Ein Fehler hier darf den Dienst nicht abstürzen lassen, sonst schaltet Android ihn ab.
+        runCatching { if (SystemClock.elapsedRealtime() < BOOT_WINDOW_MS) BootStarter.runAsync(this, source = "guard") }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        runCatching { handle(event) }
+    }
+
+    private fun handle(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
         if (pkg !in Launcher.STOCK_LAUNCHERS) return

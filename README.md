@@ -1,11 +1,14 @@
+<p align="center"><img src="app/src/main/res/drawable-xhdpi/banner.png" alt="Mayo Home" width="480"></p>
+
 # Mayo Home
 
 Ein eigener Startbildschirm für Android TV, gebaut für die Nokia Streaming Box 8010 und alles, was
 darauf läuft: Mayo TV, TizenTube, Nuvio.
 
 - **Start**: deine wichtigsten Apps groß in einer Reihe (Vorschlag: Mayo TV, YouTube/TizenTube,
-  Nuvio, Spotify), jede mit einer Zeile, was dort gerade wartet. Darunter „Weiter schauen“ und die
-  Kanäle, die deine Apps für den Startbildschirm anbieten.
+  Nuvio, Spotify). Darüber das „Top Shelf“: Es zeigt, was die ausgewählte App gerade bietet (bei
+  Mayo TV ein laufendes Spiel oder den zuletzt gesehenen Sender, bei Nuvio die angefangene Folge).
+  Darunter „Weiter schauen“ und die Kanäle, die deine Apps für den Startbildschirm anbieten.
 - **Live TV**: ein großes Poster mit den Highlights des Moments (Spiele deiner Teams zuerst, dann
   Sport, Filme und Serien mit dem Bild aus der TV-Zeitschrift). Darunter eine Kategorie deiner
   Playlist aus Mayo TV (z. B. „Magenta TV“) und „Zuletzt gesehen“.
@@ -21,12 +24,13 @@ darauf läuft: Mayo TV, TizenTube, Nuvio.
    dem Actions-Lauf laden und per ADB installieren: `adb install MayoHome.apk`.
 2. Mayo Home öffnen.
 3. **Home-Taste auf Mayo Home legen**, eine der beiden Arten:
-   - *Home-Wächter* (wie Projectivy): Einstellungen → Hauptlauncher → „Home-Wächter einschalten“ und in
-     den Bedienungshilfen „Mayo Home: Home-Taste“ aktivieren. Fehlt das Menü auf der Box, per ADB:
+   - *Home-Wächter* (wie Projectivy): einmal per ADB erlauben, dass Mayo Home ihn selbst einträgt,
+     dann Einstellungen → Hauptlauncher → „Home-Wächter einschalten“:
      ```
-     adb shell settings put secure enabled_accessibility_services io.github.jonathanxoxox.mayohome/.system.HomeGuardService
-     adb shell settings put secure accessibility_enabled 1
+     adb shell pm grant io.github.jonathanxoxox.mayohome android.permission.WRITE_SECURE_SETTINGS
      ```
+     Andere Bedienungshilfen (Projectivy, Button Mapper) bleiben dabei an. Nicht
+     `settings put secure enabled_accessibility_services …` verwenden: das ersetzt die ganze Liste.
    - *Standard-Startbildschirm* (sauberer, geht nicht auf jeder Box):
      ```
      adb shell cmd package set-home-activity io.github.jonathanxoxox.mayohome/.MainActivity
