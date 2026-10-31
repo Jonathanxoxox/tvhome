@@ -14,7 +14,7 @@ darauf läuft: Mayo TV, TizenTube, Nuvio.
 
 ## Installieren
 
-1. APK laden: `https://github.com/Jonathanxoxox/mayo-home/releases/download/latest/MayoHome.apk`
+1. APK laden: `https://github.com/Jonathanxoxox/tvhome/releases/download/latest/MayoHome.apk`
    (am Fernseher z. B. mit Downloader). Geht nur, wenn das Repo öffentlich ist; sonst die APK aus
    dem Actions-Lauf laden und per ADB installieren: `adb install MayoHome.apk`.
 2. Mayo Home öffnen.

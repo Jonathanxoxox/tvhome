@@ -1,7 +1,7 @@
 name: Mayo Home APK
 
 # Baut bei jedem Push eine signierte Release-APK. Sie liegt danach immer unter derselben Adresse:
-#   https://github.com/<besitzer>/mayo-home/releases/download/latest/MayoHome.apk
+#   https://github.com/Jonathanxoxox/tvhome/releases/download/latest/MayoHome.apk
 # (bei einem privaten Repo nur mit Anmeldung; zum Laden am Fernseher das Repo öffentlich machen).
 on:
   push:

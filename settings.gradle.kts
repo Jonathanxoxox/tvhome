@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "mayo-home"
+rootProject.name = "tvhome"
 include(":app")
