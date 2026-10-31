@@ -63,7 +63,8 @@ object Launcher {
         "adb shell appops set ${context.packageName} SYSTEM_ALERT_WINDOW allow"
 
     fun epgAdbCommand(context: Context): String =
-        "adb shell pm grant ${context.packageName} com.android.providers.tv.permission.READ_EPG_DATA"
+        "adb shell pm grant ${context.packageName} com.android.providers.tv.permission.READ_EPG_DATA\n" +
+            "adb shell pm grant ${context.packageName} android.permission.READ_TV_LISTINGS"
 
     /** Öffnet eine Systemseite; manche Boxen haben sie nicht, dann gibt es einen Hinweis. */
     fun openSystemPage(context: Context, action: String, data: Uri? = null) {

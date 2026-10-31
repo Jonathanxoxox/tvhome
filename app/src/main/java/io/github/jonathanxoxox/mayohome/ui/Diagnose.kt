@@ -44,11 +44,13 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
         "Home-Wächter an" to yes(Launcher.isGuardEnabled(context)),
         "Start aus dem Hintergrund" to yes(Launcher.canDrawOverlays(context)),
         "TV-Programmdaten erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED),
+        "TV-Listen lesen erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_LISTINGS) == android.content.pm.PackageManager.PERMISSION_GRANTED),
         "Apps gefunden" to "${apps.size}",
     )
     val channels = buildList {
         add("Kanäle der Apps" to "${tv.channels.size}" + if (tv.permissionMissing) " (keine Berechtigung)" else "")
         tv.channels.forEach { add("  ${appName(it.packageName)} · ${it.name}" to "${it.programs.size} Einträge") }
+        add("Rohdaten" to vm.tvStats)
         add("Weiter schauen (System)" to "${tv.watchNext.size}")
         add("Mayo TV · Für dich" to "${tv.mayo(TvSnapshot.MAYO_FOR_YOU).size}")
         add("Mayo TV · Favoriten" to "${tv.mayo(TvSnapshot.MAYO_FAVORITES).size}")
@@ -75,6 +77,8 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
 
 @Composable
 private fun Block(title: String, rows: List<Pair<String, String>>) {
+    // Auswählbar, damit man mit der Fernbedienung durch die Seite scrollen kann.
+    FocusCard(onClick = {}, scale = 1f, container = androidx.compose.ui.graphics.Color.Transparent, focusedContainer = Palette.Card, modifier = Modifier.fillMaxWidth()) {
     Column(
         Modifier.fillMaxWidth().border(1.dp, Palette.Line, RoundedCornerShape(12.dp)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -87,4 +91,5 @@ private fun Block(title: String, rows: List<Pair<String, String>>) {
             }
         }
     }
+}
 }

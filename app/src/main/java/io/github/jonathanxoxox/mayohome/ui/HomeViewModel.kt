@@ -45,6 +45,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val now: StateFlow<Long> = _now.asStateFlow()
 
     val epgError: String? get() = app.epg.lastError
+    val tvStats: String get() = app.tv.lastStats
     val catalog get() = app.epg.catalog
     fun channelName(id: String) = app.epg.name(id)
 

@@ -62,6 +62,10 @@ data class TvSnapshot(
  */
 class TvChannelsRepository(private val context: Context) {
 
+    /** Rohzahlen der letzten Abfrage, für die Diagnose-Seite. */
+    @Volatile var lastStats: String = "noch nicht geladen"
+        private set
+
     suspend fun load(): TvSnapshot = withContext(Dispatchers.IO) {
         try {
             val channels = loadChannels()
@@ -69,15 +73,17 @@ class TvChannelsRepository(private val context: Context) {
                 .sortedByDescending { it.lastEngagement }
             // Liefert der Provider nur unsere eigenen Zeilen (also keine), fehlt in der Praxis die Berechtigung.
             TvSnapshot(channels, watchNext, permissionMissing = channels.isEmpty() && watchNext.isEmpty() && !hasPermission())
-        } catch (_: SecurityException) {
+        } catch (e: SecurityException) {
+            lastStats = "SecurityException: ${e.message}"
             TvSnapshot(permissionMissing = true)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            lastStats = "Fehler: ${e.javaClass.simpleName} ${e.message}"
             TvSnapshot()
         }
     }
 
     fun hasPermission(): Boolean =
-        context.checkSelfPermission(READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        context.checkSelfPermission(READ_LISTINGS) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
     private fun loadChannels(): List<AppChannel> {
         val projection = arrayOf(
@@ -89,13 +95,22 @@ class TvChannelsRepository(private val context: Context) {
             TvContractCompat.Channels.COLUMN_BROWSABLE,
         )
         val result = ArrayList<AppChannel>()
-        context.contentResolver.query(TvContractCompat.Channels.CONTENT_URI, projection, null, null, null)?.use { c ->
+        var rows = 0
+        val types = HashMap<String, Int>()
+        val packages = HashSet<String>()
+        var emptyPreview = 0
+        val cursor = context.contentResolver.query(TvContractCompat.Channels.CONTENT_URI, projection, null, null, null)
+        cursor?.use { c ->
             while (c.moveToNext()) {
-                if (c.str(TvContractCompat.Channels.COLUMN_TYPE) != TvContractCompat.Channels.TYPE_PREVIEW) continue
+                rows++
+                val type = c.str(TvContractCompat.Channels.COLUMN_TYPE) ?: "?"
+                types[type] = (types[type] ?: 0) + 1
+                c.str(TvContractCompat.Channels.COLUMN_PACKAGE_NAME)?.let { packages += it }
+                if (type != TvContractCompat.Channels.TYPE_PREVIEW) continue
                 val id = c.long(TvContractCompat.Channels._ID)
                 val pkg = c.str(TvContractCompat.Channels.COLUMN_PACKAGE_NAME).orEmpty()
                 val programs = loadPrograms(TvContractCompat.buildPreviewProgramsUriForChannel(id), watchNext = false)
-                if (programs.isEmpty()) continue
+                if (programs.isEmpty()) { emptyPreview++; continue }
                 result += AppChannel(
                     id = id,
                     packageName = pkg,
@@ -105,6 +120,9 @@ class TvChannelsRepository(private val context: Context) {
                 )
             }
         }
+        lastStats = (if (cursor == null) "Abfrage lieferte nichts (null). " else "") +
+            "$rows Kanal-Zeilen, Typen: ${types.entries.joinToString { "${it.key.removePrefix("TYPE_")}=${it.value}" }.ifBlank { "–" }}, " +
+            "leere Vorschau-Kanäle: $emptyPreview, Apps: ${packages.size}"
         return result
     }
 
@@ -147,6 +165,8 @@ class TvChannelsRepository(private val context: Context) {
 
     companion object {
         const val READ_EPG = "com.android.providers.tv.permission.READ_EPG_DATA"
+        const val READ_LISTINGS = "android.permission.READ_TV_LISTINGS"
+        val PERMISSIONS = arrayOf(READ_EPG, READ_LISTINGS)
 
         /** Macht aus der Link-Adresse eines Eintrags einen startbaren Intent. */
         fun intentOf(uri: String?): Intent? {

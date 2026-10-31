@@ -56,6 +56,7 @@ import io.github.jonathanxoxox.mayohome.ui.MayoTheme
 import io.github.jonathanxoxox.mayohome.ui.Palette
 import io.github.jonathanxoxox.mayohome.ui.SettingsScreen
 import io.github.jonathanxoxox.mayohome.ui.StartScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
     /** Zählt Home-Tastendrücke, damit die Oberfläche zurück zum Start springt. */
     private val homePresses = MutableStateFlow(0)
 
-    private val askTvPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { vm.refreshTv() }
+    private val askTvPermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { vm.refreshTv() }
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) { vm.refreshApps() }
@@ -91,11 +92,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestTvPermission() {
-        if (checkSelfPermission(TvChannelsRepository.READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            vm.refreshTv()
-        } else {
-            askTvPermission.launch(TvChannelsRepository.READ_EPG)
+        val missing = TvChannelsRepository.PERMISSIONS.filter {
+            checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
         }
+        if (missing.isEmpty()) vm.refreshTv() else askTvPermission.launch(missing.toTypedArray())
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -137,6 +137,22 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
     BackHandler(enabled = !showSettings) {
         if (tab != "start") tab = "start" else runCatching { heroFocus.requestFocus() }
     }
+    // Nach dem Schließen der Einstellungen den Fokus wieder auf die Seite setzen, sonst ist er weg.
+    LaunchedEffect(showSettings) {
+        if (!showSettings) {
+            delay(120)
+            runCatching { if (tab == "apps") appsFocus.requestFocus() else heroFocus.requestFocus() }
+        }
+    }
+
+    // Die Einstellungen ersetzen die Seite ganz; lägen sie nur darüber, könnte der Fokus in die
+    // Kacheln dahinter springen.
+    if (showSettings) {
+        Box(Modifier.fillMaxSize().background(look.page)) {
+            SettingsScreen(vm, settings, onClose = { showSettings = false }, onRequestTvPermission = onRequestTvPermission)
+        }
+        return
+    }
 
     Box(Modifier.fillMaxSize().background(look.page)) {
         if (look.heroBackdrop && heroImage != null) {
@@ -167,9 +183,6 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
                     )
                 }
             }
-        }
-        if (showSettings) {
-            SettingsScreen(vm, settings, onClose = { showSettings = false }, onRequestTvPermission = onRequestTvPermission)
         }
     }
 }

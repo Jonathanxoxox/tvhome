@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,7 @@ import io.github.jonathanxoxox.mayohome.data.Settings
 import io.github.jonathanxoxox.mayohome.data.StartRow
 import io.github.jonathanxoxox.mayohome.data.TvChannelsRepository
 import io.github.jonathanxoxox.mayohome.system.Launcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private data class Category(val key: String, val label: String)
@@ -86,11 +88,27 @@ fun SettingsScreen(
     }
     var category by remember { mutableStateOf("start") }
     var sub by remember { mutableStateOf<String?>(null) }
+    val categoryFocus = remember { CATEGORIES.map { FocusRequester() } }
+    val contentFocus = remember { FocusRequester() }
+    var wasInSub by remember { mutableStateOf(false) }
     BackHandler { if (sub != null) sub = null else onClose() }
-    val firstCategory = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { firstCategory.requestFocus() } }
+    LaunchedEffect(Unit) { runCatching { categoryFocus[0].requestFocus() } }
+    // Wechselt die rechte Seite, verschwindet der ausgewählte Eintrag. Den Fokus deshalb gezielt
+    // weitergeben: in eine Unterseite hinein, oder beim Verlassen zurück auf die Kategorie.
+    LaunchedEffect(sub) {
+        if (sub != null) {
+            wasInSub = true
+            delay(80)
+            runCatching { contentFocus.requestFocus() }
+        } else if (wasInSub) {
+            wasInSub = false
+            delay(30)
+            val index = CATEGORIES.indexOfFirst { it.key == category }.coerceAtLeast(0)
+            runCatching { categoryFocus[index].requestFocus() }
+        }
+    }
 
-    Row(Modifier.fillMaxSize().background(Color(0xF20D1113))) {
+    Row(Modifier.fillMaxSize().background(Color(0xFF0D1113))) {
         Column(
             Modifier.width(240.dp).fillMaxHeight().padding(start = 48.dp, top = 40.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -103,7 +121,7 @@ fun SettingsScreen(
                     onFocus = { if (it) { category = c.key; sub = null } },
                     container = if (selected) Palette.Card else Color.Transparent,
                     scale = 1.03f,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).let { if (i == 0) it.focusRequester(firstCategory) else it },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).focusRequester(categoryFocus[i]),
                 ) {
                     Text(c.label, fontSize = 14.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                         color = Palette.Text, modifier = Modifier.align(Alignment.CenterStart).padding(horizontal = 14.dp))
@@ -111,7 +129,7 @@ fun SettingsScreen(
             }
         }
         LazyColumn(
-            Modifier.weight(1f).fillMaxHeight(),
+            Modifier.weight(1f).fillMaxHeight().focusRequester(contentFocus).focusGroup(),
             contentPadding = PaddingValues(start = 16.dp, end = 64.dp, top = 76.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -445,7 +463,9 @@ private fun LauncherSection(vm: HomeViewModel, s: Settings, onRequestTvPermissio
     val isDefault = remember(tick) { Launcher.isDefaultHome(context) }
     val guard = remember(tick) { Launcher.isGuardEnabled(context) }
     val overlay = remember(tick) { Launcher.canDrawOverlays(context) }
-    val epg = remember(tick) { context.checkSelfPermission(TvChannelsRepository.READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED }
+    val epg = remember(tick) {
+        TvChannelsRepository.PERMISSIONS.all { context.checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED }
+    }
     val bootLabel = s.bootApp.takeIf { it.isNotBlank() }?.let { pkg -> vm.apps.value.firstOrNull { it.packageName == pkg }?.label ?: pkg } ?: "Mayo Home"
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

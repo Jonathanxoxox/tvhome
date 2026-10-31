@@ -33,6 +33,7 @@ darauf läuft: Mayo TV, TizenTube, Nuvio.
    Kommt keine Abfrage, per ADB:
    ```
    adb shell pm grant io.github.jonathanxoxox.mayohome com.android.providers.tv.permission.READ_EPG_DATA
+   adb shell pm grant io.github.jonathanxoxox.mayohome android.permission.READ_TV_LISTINGS
    ```
 5. Optional, damit Mayo Home nach dem Einschalten sicher startet:
    ```
