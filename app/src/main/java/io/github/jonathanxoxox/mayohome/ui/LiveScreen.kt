@@ -27,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,7 @@ fun LiveScreen(
     val now by vm.now.collectAsState()
     val apps by vm.apps.collectAsState()
     val mayo by vm.mayo.collectAsState()
+    var categoryDialog by remember { mutableStateOf(false) }
     val heroes = remember(settings, tv, epg, now) { Highlights.build(settings, now, tv, epg, vm::channelName) }
 
     LazyColumn(
@@ -93,26 +95,42 @@ fun LiveScreen(
         if (tv.permissionMissing) {
             item(key = "permission") { PermissionHint(onRequestTvPermission) }
         }
-        for (rowKey in settings.rows) {
-            if (rowKey in settings.hiddenRows) continue
+        val visibleRows = settings.rows.filter { it !in settings.hiddenRows && StartRow.of(it) != null }
+        fun controls(key: String, more: List<MenuEntry> = emptyList()): RowControls {
+            val i = visibleRows.indexOf(key)
+            fun move(delta: Int) = vm.updateSettings { s ->
+                s.copy(rows = s.rows.filter { it !in s.hiddenRows }.moved(key, delta) + s.rows.filter { it in s.hiddenRows })
+            }
+            return RowControls(
+                onUp = if (i > 0) ({ move(-1) }) else null,
+                onDown = if (i in 0 until visibleRows.lastIndex) ({ move(1) }) else null,
+                onHide = { vm.updateSettings { it.copy(hiddenRows = it.hiddenRows + key) } },
+                more = more,
+            )
+        }
+        val chooseCategory = MenuEntry("Kategorie wählen") { categoryDialog = true }
+        for (rowKey in visibleRows) {
             when (StartRow.of(rowKey)) {
-                StartRow.CATEGORY -> item(key = "row-category") { CategoryRow(vm, settings, mayo, epg, now, onOpenSettings) }
+                StartRow.CATEGORY -> item(key = "row-category") {
+                    CategoryRow(vm, settings, mayo, epg, now, controls(rowKey, listOf(chooseCategory)),
+                        onChoose = { if (mayo.available) categoryDialog = true else onOpenSettings() })
+                }
                 StartRow.RECENT -> {
                     if (mayo.recent.isNotEmpty()) item(key = "row-recent") {
-                        ShelfRow("Zuletzt gesehen", mayo.recent, key = { "r" + it.id }) { ch -> MayoChannelTile(vm, ch, epg, now) }
+                        ShelfRow("Zuletzt gesehen", mayo.recent, key = { "r" + it.id }, controls = controls(rowKey)) { ch -> MayoChannelTile(vm, ch, epg, now) }
                     } else {
                         // Ältere Mayo-TV-Version: die Kacheln aus dem Startbildschirm-Kanal.
                         val recent = tv.mayoRecent()
                         if (recent.isNotEmpty()) item(key = "row-recent") {
-                            ShelfRow("Zuletzt gesehen", recent, key = { it.id }, note = "Mayo TV") { p ->
+                            ShelfRow("Zuletzt gesehen", recent, key = { it.id }, note = "Mayo TV", controls = controls(rowKey)) { p ->
                                 PosterTile(image = p.posterUri, title = "", subtitle = "", onClick = { vm.openProgram(context, p) }, fallback = p.title)
                             }
                         }
                     }
                 }
-                StartRow.CHANNELS -> item(key = "row-channels") { ChannelsRow(vm, settings, tv, epg, now) }
+                StartRow.CHANNELS -> item(key = "row-channels") { ChannelsRow(vm, settings, tv, epg, now, controls(rowKey)) }
                 StartRow.CONTINUE -> if (tv.watchNext.isNotEmpty()) item(key = "row-continue") {
-                    ShelfRow("Weiter schauen", tv.watchNext.take(20), key = { it.id }) { p ->
+                    ShelfRow("Weiter schauen", tv.watchNext.take(20), key = { it.id }, controls = controls(rowKey)) { p ->
                         PosterTile(
                             image = p.posterUri, title = p.title, subtitle = p.subtitle.ifBlank { appLabel(apps, p.packageName) },
                             progress = p.progress, onClick = { vm.openProgram(context, p) },
@@ -122,6 +140,29 @@ fun LiveScreen(
                 null -> Unit
             }
         }
+        val hidden = settings.hiddenRows.count { StartRow.of(it) != null }
+        if (hidden > 0) {
+            item(key = "hidden-rows") {
+                Row(Modifier.padding(horizontal = 48.dp)) {
+                    SmallAction(if (hidden == 1) "1 ausgeblendete Reihe wieder zeigen" else "$hidden ausgeblendete Reihen wieder zeigen") {
+                        vm.updateSettings { it.copy(hiddenRows = emptySet()) }
+                    }
+                }
+            }
+        }
+    }
+
+    if (categoryDialog) {
+        MenuDialog(
+            title = "Kategorie aus Mayo TV",
+            entries = listOf(MenuEntry("Keine") { vm.updateSettings { it.copy(liveCategoryId = -1L, liveCategoryName = "") } }) +
+                mayo.categories.map { cat ->
+                    MenuEntry(if (cat.id == settings.liveCategoryId) "${cat.name} (gewählt)" else cat.name) {
+                        vm.updateSettings { it.copy(liveCategoryId = cat.id, liveCategoryName = cat.name) }
+                    }
+                },
+            onDismiss = { categoryDialog = false },
+        )
     }
 }
 
@@ -133,23 +174,24 @@ private fun CategoryRow(
     mayo: MayoSnapshot,
     epg: Map<String, List<io.github.jonathanxoxox.mayohome.data.EpgProgram>>,
     now: Long,
-    onOpenSettings: () -> Unit,
+    controls: RowControls,
+    onChoose: () -> Unit,
 ) {
     val hint = when {
         !mayo.available -> "Mayo TV ist zu alt für diese Reihe. Bitte Mayo TV aktualisieren."
-        settings.liveCategoryId < 0 -> "Wähle in den Einstellungen unter „Live TV“ eine Kategorie aus deiner Playlist."
+        settings.liveCategoryId < 0 -> "Kategorie aus deiner Playlist wählen, z. B. „Magenta TV“ – OK drücken."
         mayo.category.isEmpty() -> "Die Kategorie „${settings.liveCategoryName}“ ist leer oder nicht mehr in der Playlist."
         else -> null
     }
     if (hint != null) {
         Row(Modifier.padding(horizontal = 48.dp)) {
-            FocusCard(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+            FocusCard(onClick = onChoose, modifier = Modifier.fillMaxWidth()) {
                 Text(hint, fontSize = 13.sp, color = Palette.Muted, modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp))
             }
         }
         return
     }
-    ShelfRow(settings.liveCategoryName.ifBlank { "Kategorie" }, mayo.category, key = { "c" + it.id }, note = "Mayo TV") { ch ->
+    ShelfRow(settings.liveCategoryName.ifBlank { "Kategorie" }, mayo.category, key = { "c" + it.id }, note = "Mayo TV", controls = controls) { ch ->
         MayoChannelTile(vm, ch, epg, now)
     }
 }
@@ -194,13 +236,13 @@ private fun MayoChannelTile(
 private fun appLabel(apps: List<AppEntry>, pkg: String) = apps.firstOrNull { it.packageName == pkg }?.label.orEmpty()
 
 @Composable
-private fun ChannelsRow(vm: HomeViewModel, settings: Settings, tv: TvSnapshot, epg: Map<String, List<io.github.jonathanxoxox.mayohome.data.EpgProgram>>, now: Long) {
+private fun ChannelsRow(vm: HomeViewModel, settings: Settings, tv: TvSnapshot, epg: Map<String, List<io.github.jonathanxoxox.mayohome.data.EpgProgram>>, now: Long, controls: RowControls) {
     val context = LocalContext.current
     if (epg.values.any { it.isNotEmpty() } || tv.mayo(TvSnapshot.MAYO_FAVORITES).isEmpty()) {
         // Sender aus dem Katalog, mit dem Bild der laufenden Sendung.
         val entries = settings.channels.map { id -> id to epg[id].orEmpty().firstOrNull { it.runningAt(now) } }
         if (entries.isEmpty()) return
-        ShelfRow("Sender", entries, key = { it.first }) { (id, program) ->
+        ShelfRow("Sender", entries, key = { it.first }, controls = controls) { (id, program) ->
             val name = vm.channelName(id)
             PosterTile(
                 image = program?.imageUrl,
@@ -214,7 +256,7 @@ private fun ChannelsRow(vm: HomeViewModel, settings: Settings, tv: TvSnapshot, e
         }
     } else {
         // Ohne Programmdaten: die Lieblingssender, die Mayo TV selbst als Kanal anbietet.
-        ShelfRow("Sender", tv.mayo(TvSnapshot.MAYO_FAVORITES), key = { it.id }, note = "aus Mayo TV") { p ->
+        ShelfRow("Sender", tv.mayo(TvSnapshot.MAYO_FAVORITES), key = { it.id }, note = "aus Mayo TV", controls = controls) { p ->
             PosterTile(image = p.posterUri, title = "", subtitle = "", width = 168.dp, onClick = { vm.openProgram(context, p) }, fallback = p.title)
         }
     }
