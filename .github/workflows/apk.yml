@@ -63,14 +63,27 @@ jobs:
           path: dist/MayoHome.apk
           if-no-files-found: error
 
+      # Läufe können sich überholen; veröffentlicht wird nur, was noch der neueste Stand ist, sonst zeigte
+      # "latest" am Ende auf einen älteren Bau und der Updater böte ein Downgrade an.
+      - name: Still the newest push?
+        id: newest
+        run: |
+          HEAD=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+          if [ -n "$HEAD" ] && [ "$HEAD" != "$GITHUB_SHA" ]; then
+            echo "::notice::Überholt von ${HEAD::7}, diese APK wird nicht veröffentlicht."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Move tag "latest"
-        if: github.ref_name == 'main'
+        if: github.ref_name == 'main' && steps.newest.outputs.ok == 'true'
         run: |
           git tag -f latest "$GITHUB_SHA"
           git push -f origin refs/tags/latest
 
       - name: Publish "latest" release
-        if: github.ref_name == 'main'
+        if: github.ref_name == 'main' && steps.newest.outputs.ok == 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: latest
