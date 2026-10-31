@@ -63,7 +63,6 @@ fun orderedApps(apps: List<AppEntry>, s: Settings): List<AppEntry> {
 fun AppsScreen(vm: HomeViewModel, settings: Settings, firstFocus: FocusRequester) {
     val context = LocalContext.current
     val apps by vm.apps.collectAsState()
-    val tv by vm.tv.collectAsState()
     val ordered = remember(apps, settings) { orderedApps(apps, settings) }
     var menuFor by remember { mutableStateOf<AppEntry?>(null) }
     val columns = settings.appColumns
@@ -96,21 +95,6 @@ fun AppsScreen(vm: HomeViewModel, settings: Settings, firstFocus: FocusRequester
                 if (settings.hiddenApps.isNotEmpty()) {
                     Text("${settings.hiddenApps.size} ausgeblendet · in den Einstellungen wieder einblenden",
                         fontSize = 11.sp, color = Palette.Muted, modifier = Modifier.align(Alignment.CenterVertically))
-                }
-            }
-        }
-        if (settings.showAppChannels) {
-            val channels = tv.channels.filter { it.key !in settings.hiddenAppChannels }
-            items(channels.size, key = { "ch-${channels[it].id}" }) { i ->
-                val ch = channels[i]
-                val appName = apps.firstOrNull { it.packageName == ch.packageName }?.label ?: ch.packageName
-                ShelfRow(ch.name, ch.programs, key = { it.id }, note = appName) { p ->
-                    val wide = p.aspect >= 1f
-                    PosterTile(
-                        image = p.posterUri, title = p.title, subtitle = p.subtitle,
-                        width = if (wide) 180.dp else 110.dp, aspect = if (wide) 16f / 9f else 2f / 3f,
-                        progress = p.progress, live = p.live, onClick = { vm.openProgram(context, p) },
-                    )
                 }
             }
         }
@@ -179,17 +163,18 @@ private fun AppMenu(app: AppEntry, settings: Settings, vm: HomeViewModel, onDism
             s.copy(appOrder = order, appSort = "manual")
         }
     }
-    val isFavorite = app.packageName in settings.favoriteApps
+    // Solange keine eigenen Start-Apps gewählt sind, gilt der Vorschlag als Ausgangsliste.
+    fun startApps(s: Settings) = s.favoriteApps.ifEmpty { homeApps(apps, s).map { it.packageName } }
+    val isFavorite = app.packageName in startApps(settings)
     val entries = listOf(
         "Öffnen" to { vm.launchApp(context, app) },
         "Nach links" to { move(-1) },
         "Nach rechts" to { move(1) },
         "Ganz nach vorne" to { move(-1000) },
-        (if (isFavorite) "Von der Startseite entfernen" else "Auf die Startseite (Lieblings-Apps)") to {
+        (if (isFavorite) "Von der Startseite entfernen" else "Auf die Startseite") to {
             vm.updateSettings { s ->
                 s.copy(
-                    favoriteApps = if (isFavorite) s.favoriteApps - app.packageName else s.favoriteApps + app.packageName,
-                    rows = if (!isFavorite && "apps" !in s.rows) s.rows + "apps" else s.rows,
+                    favoriteApps = if (isFavorite) startApps(s) - app.packageName else startApps(s) + app.packageName,
                 )
             }
         },

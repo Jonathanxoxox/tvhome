@@ -55,7 +55,8 @@ import io.github.jonathanxoxox.mayohome.ui.LocalLook
 import io.github.jonathanxoxox.mayohome.ui.MayoTheme
 import io.github.jonathanxoxox.mayohome.ui.Palette
 import io.github.jonathanxoxox.mayohome.ui.SettingsScreen
-import io.github.jonathanxoxox.mayohome.ui.StartScreen
+import io.github.jonathanxoxox.mayohome.ui.HomeScreen
+import io.github.jonathanxoxox.mayohome.ui.LiveScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -124,24 +125,33 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
     var heroImage by remember { mutableStateOf<String?>(null) }
     val heroFocus = remember { FocusRequester() }
     val appsFocus = remember { FocusRequester() }
+    val homeFocus = remember { FocusRequester() }
+    fun focusTab() = runCatching {
+        when (tab) {
+            "apps" -> appsFocus.requestFocus()
+            "live" -> heroFocus.requestFocus()
+            else -> homeFocus.requestFocus()
+        }
+    }
     val look = LocalLook.current
 
-    // Home-Taste: zurück auf die Startseite, Fokus aufs Poster.
+    // Home-Taste: zurück auf den Start-Reiter, Fokus auf die erste App.
     LaunchedEffect(homePresses) {
         if (homePresses > 0) {
             showSettings = false
             tab = "start"
         }
-        runCatching { heroFocus.requestFocus() }
+        delay(120)
+        focusTab()
     }
     BackHandler(enabled = !showSettings) {
-        if (tab != "start") tab = "start" else runCatching { heroFocus.requestFocus() }
+        if (tab != "start") tab = "start" else focusTab()
     }
     // Nach dem Schließen der Einstellungen den Fokus wieder auf die Seite setzen, sonst ist er weg.
     LaunchedEffect(showSettings) {
         if (!showSettings) {
             delay(120)
-            runCatching { if (tab == "apps") appsFocus.requestFocus() else heroFocus.requestFocus() }
+            focusTab()
         }
     }
 
@@ -173,7 +183,8 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
             Crossfade(targetState = tab, label = "tab") { current ->
                 when (current) {
                     "apps" -> AppsScreen(vm, settings, appsFocus)
-                    else -> StartScreen(
+                    "start" -> HomeScreen(vm, settings, homeFocus, onRequestTvPermission)
+                    else -> LiveScreen(
                         vm = vm,
                         settings = settings,
                         heroFocus = heroFocus,
@@ -203,6 +214,7 @@ private fun TopBar(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             TabPill("Start", tab == "start") { onTab("start") }
+            TabPill("Live TV", tab == "live") { onTab("live") }
             TabPill("Apps", tab == "apps") { onTab("apps") }
         }
         Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {

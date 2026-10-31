@@ -8,7 +8,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.jonathanxoxox.mayohome.MayoHomeApp
 import io.github.jonathanxoxox.mayohome.data.AppEntry
+import io.github.jonathanxoxox.mayohome.data.ChannelNames
 import io.github.jonathanxoxox.mayohome.data.ChannelProgram
+import io.github.jonathanxoxox.mayohome.data.MayoSnapshot
 import io.github.jonathanxoxox.mayohome.data.EpgProgram
 import io.github.jonathanxoxox.mayohome.data.HeroAction
 import io.github.jonathanxoxox.mayohome.data.Settings
@@ -40,6 +42,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _epg = MutableStateFlow<Map<String, List<EpgProgram>>>(emptyMap())
     val epg: StateFlow<Map<String, List<EpgProgram>>> = _epg.asStateFlow()
 
+    private val _mayo = MutableStateFlow(MayoSnapshot())
+    /** Kategorien, Sender der gewählten Kategorie und zuletzt gesehene Sender aus Mayo TV. */
+    val mayo: StateFlow<MayoSnapshot> = _mayo.asStateFlow()
+    val mayoError: String? get() = app.mayo.lastError
+
     private val _now = MutableStateFlow(System.currentTimeMillis())
     /** Die aktuelle Zeit, jede Minute neu, damit Fortschritt und Highlights mitlaufen. */
     val now: StateFlow<Long> = _now.asStateFlow()
@@ -48,6 +55,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val tvStats: String get() = app.tv.lastStats
     val catalog get() = app.epg.catalog
     fun channelName(id: String) = app.epg.name(id)
+
+    /** Katalog-ID von MagentaTV zu einem Sendernamen aus der Playlist, für Bilder und Programm. */
+    private val catalogKeys by lazy { app.epg.catalog.associateBy({ ChannelNames.key(it.name) }, { it.id }) }
+    fun catalogIdFor(name: String): String? = catalogKeys[ChannelNames.key(name)]
 
     private var lastEpgLoad = 0L
 
@@ -111,12 +122,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             settings.map { it.channels to it.heroUseEpg }.distinctUntilChanged().collect { refreshEpg(force = true) }
         }
         viewModelScope.launch {
+            settings.map { it.liveCategoryId }.distinctUntilChanged().collect { refreshMayo() }
+        }
+        viewModelScope.launch {
             var minutes = 0
             while (true) {
                 delay(60_000)
                 _now.value = System.currentTimeMillis()
                 minutes++
-                if (minutes % 5 == 0) refreshTv()
+                if (minutes % 5 == 0) { refreshTv(); refreshMayo() }
                 if (minutes % 15 == 0) refreshEpg(force = true)
                 if (minutes % 360 == 0 && settings.value.autoUpdate) checkForUpdate(manual = false)
             }
@@ -126,6 +140,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun onResume() {
         _now.value = System.currentTimeMillis()
         refreshTv()
+        refreshMayo()
         refreshEpg(force = false)
     }
 
@@ -133,13 +148,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshTv() = viewModelScope.launch { _tv.value = app.tv.load() }
 
+    fun refreshMayo() = viewModelScope.launch {
+        val before = _mayo.value
+        val loaded = app.mayo.load(app.settings.current().liveCategoryId)
+        _mayo.value = loaded
+        // Neue Sender in der Kategorie: deren Programm (mit Bildern) dazuladen.
+        val ids = { m: MayoSnapshot -> (m.category + m.recent).mapNotNull { catalogIdFor(it.name) }.toSet() }
+        if (ids(loaded) != ids(before)) refreshEpg(force = true)
+    }
+
     fun refreshEpg(force: Boolean) = viewModelScope.launch {
         val s = app.settings.current()
         val now = System.currentTimeMillis()
         if (!force && now - lastEpgLoad < 10 * 60_000L) return@launch
         lastEpgLoad = now
-        if (s.channels.isEmpty()) { _epg.value = emptyMap(); return@launch }
-        val loaded = app.epg.load(s.channels, now - 4 * 3_600_000L, now + 10 * 3_600_000L)
+        // Die gewählten Sender plus die Sender aus der Mayo-TV-Kategorie und "Zuletzt gesehen".
+        val m = _mayo.value
+        val ids = (s.channels + (m.category + m.recent).mapNotNull { catalogIdFor(it.name) }).distinct().take(60)
+        if (ids.isEmpty()) { _epg.value = emptyMap(); return@launch }
+        val loaded = app.epg.load(ids, now - 4 * 3_600_000L, now + 10 * 3_600_000L)
         if (loaded.isNotEmpty() || force) _epg.value = loaded
     }
 
@@ -172,6 +199,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * Kanäle an; dort steht der passende Link. Gibt es keinen, öffnet sich Mayo TV einfach.
      */
     fun openChannel(context: Context, channelName: String): Boolean {
+        // Zuerst über die Schnittstelle von Mayo TV: dort steht der genaue Link jedes Senders.
+        val key = ChannelNames.key(channelName)
+        (_mayo.value.category + _mayo.value.recent).firstOrNull { ChannelNames.key(it.name) == key }?.let {
+            return Launcher.start(context, it.intent())
+        }
         val wanted = normalize(channelName)
         val tv = _tv.value
         val candidates = tv.mayo(TvSnapshot.MAYO_FAVORITES) + tv.mayoRecent()

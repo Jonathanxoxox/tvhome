@@ -34,6 +34,7 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
     val epg by vm.epg.collectAsState()
     val now by vm.now.collectAsState()
     val apps by vm.apps.collectAsState()
+    val mayo by vm.mayo.collectAsState()
     val heroes = remember(settings, tv, epg, now) { Highlights.build(settings, now, tv, epg, vm::channelName) }
     fun yes(b: Boolean) = if (b) "ja" else "nein"
     fun appName(pkg: String) = apps.firstOrNull { it.packageName == pkg }?.label ?: pkg
@@ -56,6 +57,14 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
         add("Mayo TV · Favoriten" to "${tv.mayo(TvSnapshot.MAYO_FAVORITES).size}")
         add("Mayo TV · Zuletzt gesehen" to "${tv.mayoRecent().size}")
     }
+    val mayoRows = buildList {
+        add("Schnittstelle erreichbar" to yes(mayo.available))
+        add("Kategorien" to "${mayo.categories.size}")
+        add("Gewählte Kategorie" to settings.liveCategoryName.ifBlank { "keine" } + " (${mayo.category.size} Sender)")
+        add("davon mit Programmbild" to "${mayo.category.count { vm.catalogIdFor(it.name) != null }}")
+        add("Zuletzt gesehen" to "${mayo.recent.size}")
+        vm.mayoError?.let { add("Fehler" to it) }
+    }
     val programmes = epg.values.flatten()
     val program = buildList {
         add("Gewählte Sender" to "${settings.channels.size}")
@@ -69,6 +78,7 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Block("System", system)
+        Block("Mayo TV", mayoRows)
         Block("Kanäle", channels)
         Block("TV-Programm (MagentaTV)", program)
         Block("Highlights im Poster (Punkte · Eintrag)", highlights)

@@ -3,11 +3,13 @@
 Ein eigener Startbildschirm für Android TV, gebaut für die Nokia Streaming Box 8010 und alles, was
 darauf läuft: Mayo TV, TizenTube, Nuvio.
 
-- **Start**: ein großes Poster mit den Highlights des Moments. Spiele deiner Teams stehen vorne, dann
-  Sport, Filme und Serien auf deinen Sendern, mit dem Bild aus der TV-Zeitschrift. Darunter
-  „Weiter schauen“, deine Sender mit der laufenden Sendung und „Zuletzt gesehen“ aus Mayo TV.
-- **Apps**: alle Apps als Raster, darunter die Kanäle, die deine Apps für den Startbildschirm anbieten
-  (wie in Projectivy).
+- **Start**: deine wichtigsten Apps groß in einer Reihe (Vorschlag: Mayo TV, YouTube/TizenTube,
+  Nuvio, Spotify), jede mit einer Zeile, was dort gerade wartet. Darunter „Weiter schauen“ und die
+  Kanäle, die deine Apps für den Startbildschirm anbieten.
+- **Live TV**: ein großes Poster mit den Highlights des Moments (Spiele deiner Teams zuerst, dann
+  Sport, Filme und Serien mit dem Bild aus der TV-Zeitschrift). Darunter eine Kategorie deiner
+  Playlist aus Mayo TV (z. B. „Magenta TV“) und „Zuletzt gesehen“.
+- **Apps**: alle Apps als Raster.
 - **Einstellungen**: über das Zahnrad oben rechts. Fast alles ist einstellbar.
 
 > Prototyp. Gebaut und mit Unit-Tests geprüft, aber noch nicht auf einem Fernseher ausprobiert.
@@ -62,7 +64,7 @@ Poster stehen.
 | Spiele deiner Teams | Kanal „Für dich“ von Mayo TV (Android-TV-Kanäle) |
 | Highlights und Sender mit Bild | Programm von MagentaTV, dieselbe Abfrage wie in [iptv-org/epg](https://github.com/iptv-org/epg). Keine offizielle Schnittstelle, funktioniert womöglich nur in Deutschland. |
 | Weiter schauen | „Weiter schauen“ von Android TV, das z. B. Nuvio füllt |
-| Zuletzt gesehen, Lieblingssender | Kanäle von Mayo TV |
+| Kategorie und Zuletzt gesehen (Live TV) | Schnittstelle von Mayo TV (`content://io.github.jonathanxoxox.tvplayer.home/…`), ab der Mayo-TV-Version mit dieser Schnittstelle |
 | Kanäle der Apps | Android-TV-Kanäle aller Apps |
 
 Ein Klick auf einen Sender öffnet ihn in Mayo TV, wenn er dort unter den Favoriten oder zuletzt

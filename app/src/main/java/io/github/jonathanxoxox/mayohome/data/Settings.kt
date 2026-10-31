@@ -15,12 +15,12 @@ import kotlinx.coroutines.flow.stateIn
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Reihen der Startseite, in der Reihenfolge, die der Nutzer einstellt. */
+/** Reihen unter dem Poster im Reiter Live TV, in der Reihenfolge, die der Nutzer einstellt. */
 enum class StartRow(val key: String, val label: String) {
-    CONTINUE("continue", "Weiter schauen"),
-    CHANNELS("channels", "Sender"),
+    CATEGORY("category", "Kategorie aus Mayo TV"),
     RECENT("recent", "Zuletzt gesehen"),
-    APPS("apps", "Lieblings-Apps");
+    CHANNELS("channels", "Sender aus dem Katalog"),
+    CONTINUE("continue", "Weiter schauen");
 
     companion object {
         fun of(key: String) = entries.firstOrNull { it.key == key }
@@ -56,9 +56,12 @@ data class Settings(
     val heroRotateSeconds: Int = 10,
     val heroMax: Int = 6,
     val heroLookaheadHours: Int = 3,
-    // Startseite: Reihen
-    val rows: List<String> = listOf("continue", "channels", "recent"),
+    // Live TV: Reihen unter dem Poster und die Kategorie aus Mayo TV
+    val rows: List<String> = listOf("category", "recent"),
     val hiddenRows: Set<String> = emptySet(),
+    val liveCategoryId: Long = -1L,
+    val liveCategoryName: String = "",
+    // Start: die wichtigsten Apps (Paketnamen, in dieser Reihenfolge); leer = Vorschlag
     val favoriteApps: List<String> = emptyList(),
     // Sender aus dem Katalog (MagentaTV-IDs), in dieser Reihenfolge
     val channels: List<String> = DEFAULT_CHANNELS,
@@ -98,8 +101,10 @@ data class Settings(
         put("heroRotateSeconds", heroRotateSeconds)
         put("heroMax", heroMax)
         put("heroLookaheadHours", heroLookaheadHours)
-        put("rows", JSONArray(rows))
-        put("hiddenRows", JSONArray(hiddenRows.toList()))
+        put("liveRows", JSONArray(rows))
+        put("liveHiddenRows", JSONArray(hiddenRows.toList()))
+        put("liveCategoryId", liveCategoryId)
+        put("liveCategoryName", liveCategoryName)
         put("favoriteApps", JSONArray(favoriteApps))
         put("channels", JSONArray(channels))
         put("appColumns", appColumns)
@@ -149,8 +154,10 @@ data class Settings(
                 heroRotateSeconds = o.optInt("heroRotateSeconds", d.heroRotateSeconds),
                 heroMax = o.optInt("heroMax", d.heroMax),
                 heroLookaheadHours = o.optInt("heroLookaheadHours", d.heroLookaheadHours),
-                rows = strings("rows", d.rows),
-                hiddenRows = strings("hiddenRows", emptyList()).toSet(),
+                rows = strings("liveRows", d.rows),
+                hiddenRows = strings("liveHiddenRows", emptyList()).toSet(),
+                liveCategoryId = o.optLong("liveCategoryId", d.liveCategoryId),
+                liveCategoryName = o.optString("liveCategoryName", d.liveCategoryName),
                 favoriteApps = strings("favoriteApps", d.favoriteApps),
                 channels = strings("channels", d.channels),
                 appColumns = o.optInt("appColumns", d.appColumns).coerceIn(4, 8),

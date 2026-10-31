@@ -65,8 +65,9 @@ import kotlinx.coroutines.launch
 private data class Category(val key: String, val label: String)
 
 private val CATEGORIES = listOf(
-    Category("start", "Startseite"),
-    Category("channels", "Sender"),
+    Category("start", "Start"),
+    Category("live", "Live TV"),
+    Category("channels", "Sender-Katalog"),
     Category("apps", "Apps"),
     Category("look", "Aussehen"),
     Category("launcher", "Hauptlauncher"),
@@ -135,7 +136,8 @@ fun SettingsScreen(
         ) {
             when (sub) {
                 null -> when (category) {
-                    "start" -> startItems(vm, settings) { sub = it }
+                    "start" -> homeItems(vm, settings) { sub = it }
+                    "live" -> startItems(vm, settings) { sub = it }
                     "channels" -> channelItems(vm, settings) { sub = it }
                     "apps" -> appItems(vm, settings) { sub = it }
                     "look" -> lookItems(vm, settings)
@@ -151,6 +153,8 @@ fun SettingsScreen(
                 "hiddenApps" -> hiddenAppItems(vm, settings)
                 "appChannels" -> appChannelItems(vm, settings)
                 "bootApp" -> bootAppItems(vm, settings) { sub = null }
+                "homeApps" -> homeAppItems(vm, settings)
+                "category" -> categoryItems(vm, settings) { sub = null }
                 "pin" -> item { PinEditor(vm, settings) { sub = null } }
                 "diagnose" -> item { DiagnoseSection(vm, settings) }
             }
@@ -193,6 +197,11 @@ private fun <T> next(options: List<T>, current: T): T = options[(options.indexOf
 // ---------- Startseite ----------
 
 private fun LazyListScope.startItems(vm: HomeViewModel, s: Settings, open: (String) -> Unit) {
+    item { SectionTitle("Kategorie unter dem Poster") }
+    item {
+        SettingRow("Kategorie aus Mayo TV", "Eine Gruppe deiner Playlist, z. B. „Magenta TV“",
+            value = s.liveCategoryName.ifBlank { "keine" }) { open("category") }
+    }
     item { SectionTitle("Großes Poster") }
     item { SettingRow("Fußball zuerst", "Spiele deiner Teams stehen immer vorne", toggle = s.footballFirst) { vm.updateSettings { it.copy(footballFirst = !it.footballFirst) } } }
     item { SettingRow("Lieblingsteams", "Werden im Programm erkannt, z. B. „Bayern“, „Schalke“", value = s.favoriteTeams.joinToString(", ").ifBlank { "keine" }) { open("teams") } }
@@ -219,11 +228,93 @@ private fun LazyListScope.startItems(vm: HomeViewModel, s: Settings, open: (Stri
             vm.updateSettings { it.copy(heroLookaheadHours = next(options, it.heroLookaheadHours.takeIf { v -> v in options } ?: 3)) }
         }
     }
-    item { SectionTitle("Reihen") }
+    item { SectionTitle("Reihen unter dem Poster") }
     item { SettingRow("Reihen und Reihenfolge", value = s.rows.filter { it !in s.hiddenRows }.mapNotNull { StartRow.of(it)?.label }.joinToString(", ")) { open("rows") } }
+}
+
+// ---------- Start ----------
+
+private val TABS = linkedMapOf("start" to "Start", "live" to "Live TV", "apps" to "Apps")
+
+private fun LazyListScope.homeItems(vm: HomeViewModel, s: Settings, open: (String) -> Unit) {
+    item { SectionTitle("Apps oben") }
     item {
-        SettingRow("Seite beim Öffnen", value = if (s.startTab == "apps") "Apps" else "Start") {
-            vm.updateSettings { it.copy(startTab = if (it.startTab == "apps") "start" else "apps") }
+        val apps by vm.apps.collectAsState()
+        SettingRow("Apps auf der Startseite", "Am besten vier; lange OK auf eine App im Reiter Apps geht auch",
+            value = homeApps(apps, s).joinToString(", ") { it.label }) { open("homeApps") }
+    }
+    item { SectionTitle("Kanäle der Apps") }
+    item { SettingRow("Kanäle unter den Apps zeigen", "Reihen, die Apps für den Startbildschirm anbieten (wie in Projectivy)", toggle = s.showAppChannels) { vm.updateSettings { it.copy(showAppChannels = !it.showAppChannels) } } }
+    item { SettingRow("Einzelne Kanäle ein- und ausblenden", value = "${s.hiddenAppChannels.size} ausgeblendet") { open("appChannels") } }
+    item { SectionTitle("Beim Öffnen") }
+    item {
+        SettingRow("Reiter beim Öffnen", value = TABS[s.startTab] ?: "Start") {
+            vm.updateSettings { it.copy(startTab = next(TABS.keys.toList(), it.startTab.takeIf { t -> t in TABS } ?: "start")) }
+        }
+    }
+}
+
+private fun LazyListScope.homeAppItems(vm: HomeViewModel, s: Settings) {
+    item { SectionTitle("OK nimmt eine App auf oder heraus · lange drücken schiebt sie nach vorne") }
+    item {
+        val apps by vm.apps.collectAsState()
+        val chosen = s.favoriteApps.ifEmpty { homeApps(apps, s).map { it.packageName } }
+        val sorted = chosen.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg } } + apps.filter { it.packageName !in chosen }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            sorted.forEach { app ->
+                val on = app.packageName in chosen
+                FocusCard(
+                    onClick = {
+                        vm.updateSettings {
+                            val base = it.favoriteApps.ifEmpty { chosen }
+                            it.copy(favoriteApps = if (app.packageName in base) base - app.packageName else base + app.packageName)
+                        }
+                    },
+                    onLongClick = {
+                        vm.updateSettings {
+                            val list = it.favoriteApps.ifEmpty { chosen }.toMutableList()
+                            val i = list.indexOf(app.packageName)
+                            if (i > 0) list.add(i - 1, list.removeAt(i))
+                            it.copy(favoriteApps = list)
+                        }
+                    },
+                    scale = 1.02f,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val pos = chosen.indexOf(app.packageName)
+                        Text(if (pos >= 0) "${pos + 1}." else "", fontSize = 14.sp, color = Palette.Muted, modifier = Modifier.width(32.dp))
+                        Text(app.label, fontSize = 14.sp, color = Palette.Text, modifier = Modifier.weight(1f))
+                        SwitchPill(on)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun LazyListScope.categoryItems(vm: HomeViewModel, s: Settings, onDone: () -> Unit) {
+    item { SectionTitle("Welche Kategorie aus Mayo TV unter dem Poster stehen soll") }
+    item {
+        val mayo by vm.mayo.collectAsState()
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!mayo.available) {
+                InfoBox("Mayo TV liefert keine Kategorien. Entweder ist Mayo TV nicht installiert oder noch zu alt: Die Schnittstelle für Mayo Home kommt mit dem nächsten Update von Mayo TV." +
+                    (vm.mayoError?.let { "\n\n$it" } ?: ""))
+                SettingRow("Neu laden") { vm.refreshMayo() }
+            }
+            if (mayo.available) {
+                SettingRow("Keine", toggle = s.liveCategoryId < 0) {
+                    vm.updateSettings { it.copy(liveCategoryId = -1L, liveCategoryName = "") }
+                    onDone()
+                }
+            }
+            mayo.categories.forEach { cat ->
+                SettingRow(cat.name, toggle = s.liveCategoryId == cat.id) {
+                    vm.updateSettings { it.copy(liveCategoryId = cat.id, liveCategoryName = cat.name) }
+                    onDone()
+                }
+            }
         }
     }
 }
@@ -373,9 +464,6 @@ private fun LazyListScope.appItems(vm: HomeViewModel, s: Settings, open: (String
     }
     item { SettingRow("Ausgeblendete Apps", value = "${s.hiddenApps.size}") { open("hiddenApps") } }
     item { SettingRow("Reihenfolge zurücksetzen") { vm.updateSettings { it.copy(appOrder = emptyList()) } } }
-    item { SectionTitle("Kanäle der Apps") }
-    item { SettingRow("Kanäle unter den Apps zeigen", "Wie in Projectivy: Reihen, die Apps für den Startbildschirm anbieten", toggle = s.showAppChannels) { vm.updateSettings { it.copy(showAppChannels = !it.showAppChannels) } } }
-    item { SettingRow("Einzelne Kanäle ein- und ausblenden", value = "${s.hiddenAppChannels.size} ausgeblendet") { open("appChannels") } }
 }
 
 private fun LazyListScope.hiddenAppItems(vm: HomeViewModel, s: Settings) {

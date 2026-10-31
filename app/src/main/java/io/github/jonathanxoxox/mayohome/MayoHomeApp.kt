@@ -7,6 +7,7 @@ import coil3.SingletonImageLoader
 import coil3.request.crossfade
 import io.github.jonathanxoxox.mayohome.data.AppsRepository
 import io.github.jonathanxoxox.mayohome.data.MagentaEpg
+import io.github.jonathanxoxox.mayohome.data.MayoTvRepository
 import io.github.jonathanxoxox.mayohome.data.SettingsStore
 import io.github.jonathanxoxox.mayohome.data.TvChannelsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +20,7 @@ class MayoHomeApp : Application(), SingletonImageLoader.Factory {
     val apps by lazy { AppsRepository(this) }
     val tv by lazy { TvChannelsRepository(this) }
     val epg by lazy { MagentaEpg(this) }
+    val mayo by lazy { MayoTvRepository(this) }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context).crossfade(true).build()

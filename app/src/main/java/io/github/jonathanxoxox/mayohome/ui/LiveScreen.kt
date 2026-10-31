@@ -49,6 +49,9 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import io.github.jonathanxoxox.mayohome.data.AppEntry
 import io.github.jonathanxoxox.mayohome.data.HeroItem
+import io.github.jonathanxoxox.mayohome.data.MayoChannel
+import io.github.jonathanxoxox.mayohome.data.MayoSnapshot
+import io.github.jonathanxoxox.mayohome.system.Launcher
 import io.github.jonathanxoxox.mayohome.data.Highlights
 import io.github.jonathanxoxox.mayohome.data.Settings
 import io.github.jonathanxoxox.mayohome.data.StartRow
@@ -56,7 +59,7 @@ import io.github.jonathanxoxox.mayohome.data.TvSnapshot
 import kotlinx.coroutines.delay
 
 @Composable
-fun StartScreen(
+fun LiveScreen(
     vm: HomeViewModel,
     settings: Settings,
     heroFocus: FocusRequester,
@@ -69,6 +72,7 @@ fun StartScreen(
     val epg by vm.epg.collectAsState()
     val now by vm.now.collectAsState()
     val apps by vm.apps.collectAsState()
+    val mayo by vm.mayo.collectAsState()
     val heroes = remember(settings, tv, epg, now) { Highlights.build(settings, now, tv, epg, vm::channelName) }
 
     LazyColumn(
@@ -92,6 +96,21 @@ fun StartScreen(
         for (rowKey in settings.rows) {
             if (rowKey in settings.hiddenRows) continue
             when (StartRow.of(rowKey)) {
+                StartRow.CATEGORY -> item(key = "row-category") { CategoryRow(vm, settings, mayo, epg, now, onOpenSettings) }
+                StartRow.RECENT -> {
+                    if (mayo.recent.isNotEmpty()) item(key = "row-recent") {
+                        ShelfRow("Zuletzt gesehen", mayo.recent, key = { "r" + it.id }) { ch -> MayoChannelTile(vm, ch, epg, now) }
+                    } else {
+                        // Ältere Mayo-TV-Version: die Kacheln aus dem Startbildschirm-Kanal.
+                        val recent = tv.mayoRecent()
+                        if (recent.isNotEmpty()) item(key = "row-recent") {
+                            ShelfRow("Zuletzt gesehen", recent, key = { it.id }, note = "Mayo TV") { p ->
+                                PosterTile(image = p.posterUri, title = "", subtitle = "", onClick = { vm.openProgram(context, p) }, fallback = p.title)
+                            }
+                        }
+                    }
+                }
+                StartRow.CHANNELS -> item(key = "row-channels") { ChannelsRow(vm, settings, tv, epg, now) }
                 StartRow.CONTINUE -> if (tv.watchNext.isNotEmpty()) item(key = "row-continue") {
                     ShelfRow("Weiter schauen", tv.watchNext.take(20), key = { it.id }) { p ->
                         PosterTile(
@@ -100,26 +119,81 @@ fun StartScreen(
                         )
                     }
                 }
-                StartRow.CHANNELS -> item(key = "row-channels") { ChannelsRow(vm, settings, tv, epg, now) }
-                StartRow.RECENT -> {
-                    val recent = tv.mayoRecent()
-                    if (recent.isNotEmpty()) item(key = "row-recent") {
-                        ShelfRow("Zuletzt gesehen", recent, key = { it.id }, note = "Mayo TV") { p ->
-                            PosterTile(image = p.posterUri, title = "", subtitle = "", onClick = { vm.openProgram(context, p) }, fallback = p.title)
-                        }
-                    }
-                }
-                StartRow.APPS -> {
-                    val favorites = settings.favoriteApps.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg } }
-                    if (favorites.isNotEmpty()) item(key = "row-apps") {
-                        ShelfRow("Lieblings-Apps", favorites, key = { it.packageName }) { app ->
-                            AppTile(app, labels = "focus", width = 150.dp, onClick = { vm.launchApp(context, app) })
-                        }
-                    }
-                }
                 null -> Unit
             }
         }
+    }
+}
+
+/** Die in den Einstellungen gewählte Kategorie aus Mayo TV, mit dem Bild der laufenden Sendung. */
+@Composable
+private fun CategoryRow(
+    vm: HomeViewModel,
+    settings: Settings,
+    mayo: MayoSnapshot,
+    epg: Map<String, List<io.github.jonathanxoxox.mayohome.data.EpgProgram>>,
+    now: Long,
+    onOpenSettings: () -> Unit,
+) {
+    val hint = when {
+        !mayo.available -> "Mayo TV ist zu alt für diese Reihe. Bitte Mayo TV aktualisieren."
+        settings.liveCategoryId < 0 -> "Wähle in den Einstellungen unter „Live TV“ eine Kategorie aus deiner Playlist."
+        mayo.category.isEmpty() -> "Die Kategorie „${settings.liveCategoryName}“ ist leer oder nicht mehr in der Playlist."
+        else -> null
+    }
+    if (hint != null) {
+        Row(Modifier.padding(horizontal = 48.dp)) {
+            FocusCard(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                Text(hint, fontSize = 13.sp, color = Palette.Muted, modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp))
+            }
+        }
+        return
+    }
+    ShelfRow(settings.liveCategoryName.ifBlank { "Kategorie" }, mayo.category, key = { "c" + it.id }, note = "Mayo TV") { ch ->
+        MayoChannelTile(vm, ch, epg, now)
+    }
+}
+
+/** Sender aus Mayo TV: Bild der laufenden Sendung (aus dem MagentaTV-Programm), sonst das Senderlogo. */
+@Composable
+private fun MayoChannelTile(
+    vm: HomeViewModel,
+    ch: MayoChannel,
+    epg: Map<String, List<io.github.jonathanxoxox.mayohome.data.EpgProgram>>,
+    now: Long,
+) {
+    val context = LocalContext.current
+    val catalog = remember(ch.name) { vm.catalogIdFor(ch.name) }
+    val program = catalog?.let { id -> epg[id].orEmpty().firstOrNull { it.runningAt(now) } }
+    val title = ch.nowTitle ?: program?.title
+    val end = if (ch.nowEnd > 0) ch.nowEnd else program?.end
+    val width = 180.dp
+    Column(Modifier.width(width), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FocusCard(onClick = { Launcher.start(context, ch.intent()) }, modifier = Modifier.width(width).height(width * 9f / 16f)) {
+            if (program?.imageUrl != null) {
+                AsyncImage(model = program.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                if (ch.logo != null) {
+                    Box(Modifier.align(Alignment.TopStart).padding(8.dp).size(width = 44.dp, height = 26.dp)
+                        .background(Color(0xE6F5F7F7), RoundedCornerShape(6.dp)).padding(3.dp)) {
+                        AsyncImage(model = ch.logo, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                    }
+                }
+            } else if (ch.logo != null) {
+                AsyncImage(model = ch.logo, contentDescription = ch.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(22.dp))
+            } else {
+                Text(ch.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, color = Palette.Text,
+                    modifier = Modifier.align(Alignment.Center).padding(12.dp))
+            }
+            val progress = ch.progressAt(now) ?: program?.progressAt(now)
+            if (progress != null && progress > 0f) {
+                Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Color(0x40F5F7F7))) {
+                    Box(Modifier.fillMaxHeight().fillMaxWidth(progress).background(LocalLook.current.accent))
+                }
+            }
+        }
+        Text(ch.name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Palette.Text)
+        val sub = listOfNotNull(title, end?.takeIf { it > 0 }?.let { "bis " + Highlights.clock(it) }).joinToString(" · ")
+        if (sub.isNotBlank()) Text(sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Palette.Muted)
     }
 }
 
