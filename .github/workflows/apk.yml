@@ -52,6 +52,10 @@ jobs:
           ./gradlew testDebugUnitTest assembleRelease --stacktrace
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk dist/MayoHome.apk
+          # Die App liest diese Datei, um neuere Versionen zu erkennen.
+          printf '{"versionCode": %d, "versionName": "0.1.%d", "apkUrl": "https://github.com/%s/releases/download/latest/MayoHome.apk"}\n' \
+            "$VERSION_CODE" "$GITHUB_RUN_NUMBER" "$GITHUB_REPOSITORY" > dist/version.json
+          cat dist/version.json
 
       - uses: actions/upload-artifact@v7
         with:
@@ -74,4 +78,6 @@ jobs:
           prerelease: true
           make_latest: false
           body: "Automatisch gebaut aus ${{ github.ref_name }} @ ${{ github.sha }} (Version 0.1.${{ github.run_number }})"
-          files: dist/MayoHome.apk
+          files: |
+            dist/MayoHome.apk
+            dist/version.json

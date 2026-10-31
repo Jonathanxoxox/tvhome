@@ -13,6 +13,9 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Updates direkt aus der App installieren. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <!-- Erlaubt den Start aus dem Hintergrund (nach dem Einschalten), falls per ADB freigegeben. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Kanäle und "Weiter schauen" der anderen Apps lesen, wie Projectivy. -->
@@ -66,6 +69,10 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/home_guard" />
         </service>
+
+        <receiver
+            android:name=".system.InstallResultReceiver"
+            android:exported="false" />
 
         <receiver
             android:name=".system.BootReceiver"

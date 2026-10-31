@@ -24,6 +24,8 @@ data class HeroItem(
     val actionLabel: String,
     val action: HeroAction,
     val score: Int,
+    /** True, wenn das Bild selbst schon eine fertige Kachel oder ein Hochkant-Poster ist: dann rechts als Karte zeigen. */
+    val imageIsTile: Boolean = false,
 )
 
 /**
@@ -59,6 +61,7 @@ object Highlights {
                     actionLabel = "Ansehen",
                     action = HeroAction.Link(link),
                     score = base + if (p.live) 150 else 0,
+                    imageIsTile = true,
                 )
             }
         }
@@ -105,6 +108,7 @@ object Highlights {
                     actionLabel = "Fortsetzen",
                     action = HeroAction.Link(link),
                     score = 330 - index * 10,
+                    imageIsTile = p.aspect < 1.2f,
                 )
             }
         }

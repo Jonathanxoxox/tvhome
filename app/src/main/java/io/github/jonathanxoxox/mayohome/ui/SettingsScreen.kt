@@ -123,7 +123,7 @@ fun SettingsScreen(
                     "look" -> lookItems(vm, settings)
                     "launcher" -> item { LauncherSection(vm, settings, onRequestTvPermission) { sub = it } }
                     "backup" -> item { BackupSection(vm, settings) { sub = it } }
-                    "about" -> aboutItems(vm)
+                    "about" -> aboutItems(vm, settings) { sub = it }
                 }
                 "teams" -> item { TeamsEditor(vm, settings) { sub = null } }
                 "kinds" -> kindItems(vm, settings)
@@ -134,6 +134,7 @@ fun SettingsScreen(
                 "appChannels" -> appChannelItems(vm, settings)
                 "bootApp" -> bootAppItems(vm, settings) { sub = null }
                 "pin" -> item { PinEditor(vm, settings) { sub = null } }
+                "diagnose" -> item { DiagnoseSection(vm, settings) }
             }
         }
     }
@@ -278,7 +279,7 @@ private fun TextInput(value: String, onChange: (String) -> Unit, focus: FocusReq
         value = value,
         onValueChange = onChange,
         singleLine = true,
-        textStyle = TextStyle(color = Palette.Text, fontSize = 16.sp),
+        textStyle = TextStyle(color = Palette.Text, fontSize = 16.sp, fontFamily = Inter),
         cursorBrush = SolidColor(Palette.Text),
         keyboardOptions = KeyboardOptions(keyboardType = type, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
@@ -546,10 +547,32 @@ private fun PinGate(pin: String, onUnlock: () -> Unit, onCancel: () -> Unit) {
 
 // ---------- Über ----------
 
-private fun LazyListScope.aboutItems(vm: HomeViewModel) {
+private fun LazyListScope.aboutItems(vm: HomeViewModel, s: Settings, open: (String) -> Unit) {
     item { SectionTitle("Mayo Home") }
-    item { InfoBox("Version ${BuildConfig.VERSION_NAME}\n\nEin eigener Startbildschirm für Android TV: Highlights aus deinen Sendern, Spiele deiner Teams aus Mayo TV, „Weiter schauen“ aus deinen Apps und alle Apps auf einer Seite.") }
+    item { InfoBox("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n\nEin eigener Startbildschirm für Android TV: Highlights aus deinen Sendern, Spiele deiner Teams aus Mayo TV, „Weiter schauen“ aus deinen Apps und alle Apps auf einer Seite.") }
+    item { SectionTitle("Updates") }
+    item { UpdateRow(vm) }
+    item { SettingRow("Automatisch nach Updates suchen", "Beim Start und alle 6 Stunden; oben erscheint dann ein Hinweis", toggle = s.autoUpdate) { vm.updateSettings { it.copy(autoUpdate = !it.autoUpdate) } } }
+    item { SectionTitle("Hilfe") }
+    item { SettingRow("Diagnose", "Was Mayo Home gerade findet: Programm, Kanäle, Berechtigungen") { open("diagnose") } }
     item { SettingRow("Alles neu laden") { vm.refreshApps(); vm.refreshTv(); vm.refreshEpg(force = true) } }
+}
+
+@Composable
+private fun UpdateRow(vm: HomeViewModel) {
+    val state by vm.update.collectAsState()
+    val (title, value) = when (val u = state) {
+        HomeViewModel.UpdateState.Idle -> "Nach Updates suchen" to null
+        HomeViewModel.UpdateState.Checking -> "Suche …" to null
+        HomeViewModel.UpdateState.UpToDate -> "Nach Updates suchen" to "aktuell"
+        is HomeViewModel.UpdateState.Available -> "Jetzt aktualisieren" to "Version ${u.info.versionName}"
+        is HomeViewModel.UpdateState.Downloading -> "Lade herunter" to "${(u.progress * 100).toInt()} %"
+        is HomeViewModel.UpdateState.Installing -> "Installiere" to "Version ${u.info.versionName}"
+        is HomeViewModel.UpdateState.Failed -> "Nochmal versuchen" to u.message
+    }
+    SettingRow(title, "Lädt die neueste APK von GitHub und installiert sie", value = value) {
+        if (state is HomeViewModel.UpdateState.Available) vm.installUpdate() else vm.checkForUpdate(manual = true)
+    }
 }
 
 private fun toast(context: Context, text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()

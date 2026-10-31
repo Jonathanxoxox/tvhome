@@ -86,6 +86,7 @@ data class Settings(
     val openOnBoot: Boolean = true,
     val bootApp: String = "",
     val settingsPin: String = "",
+    val autoUpdate: Boolean = true,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("heroUseMayo", heroUseMayo)
@@ -122,6 +123,7 @@ data class Settings(
         put("openOnBoot", openOnBoot)
         put("bootApp", bootApp)
         put("settingsPin", settingsPin)
+        put("autoUpdate", autoUpdate)
     }
 
     companion object {
@@ -172,6 +174,7 @@ data class Settings(
                 openOnBoot = o.optBoolean("openOnBoot", d.openOnBoot),
                 bootApp = o.optString("bootApp", d.bootApp),
                 settingsPin = o.optString("settingsPin", d.settingsPin),
+                autoUpdate = o.optBoolean("autoUpdate", d.autoUpdate),
             )
         }
 

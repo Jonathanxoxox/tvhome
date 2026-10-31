@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -211,12 +212,19 @@ private fun HeroCard(
 @Composable
 private fun HeroContent(item: HeroItem, page: Color) {
     Box(Modifier.fillMaxSize()) {
-        if (item.imageUrl != null) {
+        if (item.imageUrl != null && !item.imageIsTile) {
             AsyncImage(model = item.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            Box(Modifier.fillMaxSize().background(heroScrim(Color(0xFF111619))))
         }
-        Box(Modifier.fillMaxSize().background(heroScrim(Color(0xFF111619))))
+        if (item.imageUrl != null && item.imageIsTile) {
+            // Fertige Kachel (z. B. ein Spiel aus Mayo TV) oder Hochkant-Poster: unverändert rechts zeigen.
+            AsyncImage(
+                model = item.imageUrl, contentDescription = null, contentScale = ContentScale.Fit, alignment = Alignment.CenterEnd,
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().fillMaxWidth(0.5f).padding(20.dp).clip(RoundedCornerShape(12.dp)),
+            )
+        }
         Column(
-            Modifier.align(Alignment.CenterStart).padding(start = 32.dp, end = 32.dp).widthIn(max = 420.dp),
+            Modifier.align(Alignment.CenterStart).padding(start = 32.dp, end = 32.dp).widthIn(max = 390.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

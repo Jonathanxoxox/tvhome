@@ -144,12 +144,15 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent, 1f to look.page)))
         }
         Column(Modifier.fillMaxSize()) {
+            val update by vm.update.collectAsState()
             TopBar(
                 tab = tab,
                 onTab = { tab = it },
                 onSettings = { showSettings = true },
                 clock24 = settings.clock24,
                 showDate = settings.showDate,
+                update = update,
+                onUpdate = { vm.installUpdate() },
             )
             Crossfade(targetState = tab, label = "tab") { current ->
                 when (current) {
@@ -172,7 +175,15 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
 }
 
 @Composable
-private fun TopBar(tab: String, onTab: (String) -> Unit, onSettings: () -> Unit, clock24: Boolean, showDate: Boolean) {
+private fun TopBar(
+    tab: String,
+    onTab: (String) -> Unit,
+    onSettings: () -> Unit,
+    clock24: Boolean,
+    showDate: Boolean,
+    update: HomeViewModel.UpdateState,
+    onUpdate: () -> Unit,
+) {
     Box(Modifier.fillMaxWidth().padding(start = 48.dp, end = 48.dp, top = 22.dp, bottom = 14.dp)) {
         Row(
             Modifier.align(Alignment.Center).background(Color(0x1FF5F7F7), RoundedCornerShape(50)).padding(3.dp),
@@ -182,6 +193,18 @@ private fun TopBar(tab: String, onTab: (String) -> Unit, onSettings: () -> Unit,
             TabPill("Apps", tab == "apps") { onTab("apps") }
         }
         Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            val label = when (update) {
+                is HomeViewModel.UpdateState.Available -> "Update ${update.info.versionName}"
+                is HomeViewModel.UpdateState.Downloading -> "Lade ${(update.progress * 100).toInt()} %"
+                is HomeViewModel.UpdateState.Installing -> "Installiere …"
+                else -> null
+            }
+            if (label != null) {
+                FocusCard(onClick = onUpdate, corner = 50.dp, scale = 1.06f, container = LocalLook.current.accent, focusedContainer = Palette.Text) {
+                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0D1113),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp))
+                }
+            }
             FocusCard(onClick = onSettings, corner = 50.dp, scale = 1.1f, container = Color.Transparent, modifier = Modifier.size(32.dp)) {
                 GearIcon(Modifier.align(Alignment.Center).size(18.dp))
             }

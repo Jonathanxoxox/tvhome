@@ -15,6 +15,8 @@ import io.github.jonathanxoxox.mayohome.data.Settings
 import io.github.jonathanxoxox.mayohome.data.TvChannelsRepository
 import io.github.jonathanxoxox.mayohome.data.TvSnapshot
 import io.github.jonathanxoxox.mayohome.system.Launcher
+import io.github.jonathanxoxox.mayohome.system.UpdateInfo
+import io.github.jonathanxoxox.mayohome.system.Updater
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,9 +50,61 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var lastEpgLoad = 0L
 
+    // --- Update ---
+
+    sealed interface UpdateState {
+        data object Idle : UpdateState
+        data object Checking : UpdateState
+        data object UpToDate : UpdateState
+        data class Available(val info: UpdateInfo) : UpdateState
+        data class Downloading(val info: UpdateInfo, val progress: Float) : UpdateState
+        data class Installing(val info: UpdateInfo) : UpdateState
+        data class Failed(val message: String) : UpdateState
+    }
+
+    private val updater = Updater(application)
+    private val _update = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val update: StateFlow<UpdateState> = _update.asStateFlow()
+    private var lastUpdateCheck = 0L
+
+    fun checkForUpdate(manual: Boolean) = viewModelScope.launch {
+        if (_update.value is UpdateState.Downloading || _update.value is UpdateState.Installing) return@launch
+        if (!manual && System.currentTimeMillis() - lastUpdateCheck < 6 * 3_600_000L) return@launch
+        lastUpdateCheck = System.currentTimeMillis()
+        if (manual) _update.value = UpdateState.Checking
+        _update.value = try {
+            updater.check()?.let { UpdateState.Available(it) } ?: UpdateState.UpToDate
+        } catch (e: Exception) {
+            if (manual) UpdateState.Failed(e.message ?: "Keine Verbindung") else UpdateState.Idle
+        }
+    }
+
+    fun installUpdate() = viewModelScope.launch {
+        val info = (_update.value as? UpdateState.Available)?.info
+        if (info == null) {
+            checkForUpdate(manual = true)
+            return@launch
+        }
+        if (!updater.canInstall()) {
+            updater.openInstallPermission()
+            return@launch
+        }
+        try {
+            _update.value = UpdateState.Downloading(info, 0f)
+            val file = updater.download(info) { p -> _update.value = UpdateState.Downloading(info, p) }
+            _update.value = UpdateState.Installing(info)
+            updater.install(file)
+        } catch (e: Exception) {
+            _update.value = UpdateState.Failed(e.message ?: e.javaClass.simpleName)
+        }
+    }
+
     init {
         refreshApps()
         refreshTv()
+        viewModelScope.launch {
+            if (app.settings.current().autoUpdate) checkForUpdate(manual = false)
+        }
         viewModelScope.launch {
             // Neu laden, sobald sich die gewählten Sender ändern.
             settings.map { it.channels to it.heroUseEpg }.distinctUntilChanged().collect { refreshEpg(force = true) }
@@ -63,6 +117,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 minutes++
                 if (minutes % 5 == 0) refreshTv()
                 if (minutes % 15 == 0) refreshEpg(force = true)
+                if (minutes % 360 == 0 && settings.value.autoUpdate) checkForUpdate(manual = false)
             }
         }
     }

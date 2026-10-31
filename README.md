@@ -39,6 +39,21 @@ darauf läuft: Mayo TV, TizenTube, Nuvio.
    adb shell appops set io.github.jonathanxoxox.mayohome SYSTEM_ALERT_WINDOW allow
    ```
 
+## Updates
+
+Mayo Home sucht beim Start und alle 6 Stunden im Release `latest` nach einer neueren Version. Dann
+erscheint oben rechts „Update …“; OK lädt und installiert sie. Von Hand: Einstellungen → Über →
+„Nach Updates suchen“. Beim ersten Mal fragt Android, ob Mayo Home Apps installieren darf.
+
+Updates klappen nur, wenn jede APK mit demselben Schlüssel signiert ist, also das Secret
+`KEYSTORE_BASE64` gesetzt ist.
+
+## Hilfe bei Problemen
+
+Einstellungen → Über → **Diagnose** zeigt, was Mayo Home gerade findet: Berechtigungen, die Kanäle
+der Apps, wie viele Sendungen von MagentaTV kamen und welche Highlights mit wie vielen Punkten im
+Poster stehen.
+
 ## Woher die Inhalte kommen
 
 | Bereich | Quelle |
@@ -76,3 +91,5 @@ gesehenen steht; sonst öffnet sich Mayo TV.
 
 Jeder Push auf `main` baut per GitHub Action eine signierte APK und legt sie im Release `latest` ab.
 Für gleichbleibende Signatur das Secret `KEYSTORE_BASE64` setzen (dasselbe Vorgehen wie bei Mayo TV).
+
+Die Schrift [Inter](https://rsms.me/inter/) steht unter der SIL Open Font License 1.1.

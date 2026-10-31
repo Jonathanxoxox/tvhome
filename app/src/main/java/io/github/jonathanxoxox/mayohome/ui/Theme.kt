@@ -8,8 +8,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Typography
 import androidx.tv.material3.darkColorScheme
+import io.github.jonathanxoxox.mayohome.R
 import io.github.jonathanxoxox.mayohome.data.Settings
 
 object Palette {
@@ -76,7 +81,36 @@ fun MayoTheme(settings: Settings, content: @Composable () -> Unit) {
                 onSurface = Palette.Text,
                 onBackground = Palette.Text,
             ),
+            typography = InterTypography,
             content = content,
         )
     }
+}
+
+/** Inter, die Schrift aus den Entwürfen, in vier Stärken. */
+val Inter = FontFamily(
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
+    Font(R.font.inter_bold, FontWeight.Bold),
+)
+
+private val InterTypography: Typography = Typography().let { t ->
+    Typography(
+        displayLarge = t.displayLarge.copy(fontFamily = Inter),
+        displayMedium = t.displayMedium.copy(fontFamily = Inter),
+        displaySmall = t.displaySmall.copy(fontFamily = Inter),
+        headlineLarge = t.headlineLarge.copy(fontFamily = Inter),
+        headlineMedium = t.headlineMedium.copy(fontFamily = Inter),
+        headlineSmall = t.headlineSmall.copy(fontFamily = Inter),
+        titleLarge = t.titleLarge.copy(fontFamily = Inter),
+        titleMedium = t.titleMedium.copy(fontFamily = Inter),
+        titleSmall = t.titleSmall.copy(fontFamily = Inter),
+        bodyLarge = t.bodyLarge.copy(fontFamily = Inter),
+        bodyMedium = t.bodyMedium.copy(fontFamily = Inter),
+        bodySmall = t.bodySmall.copy(fontFamily = Inter),
+        labelLarge = t.labelLarge.copy(fontFamily = Inter),
+        labelMedium = t.labelMedium.copy(fontFamily = Inter),
+        labelSmall = t.labelSmall.copy(fontFamily = Inter),
+    )
 }
