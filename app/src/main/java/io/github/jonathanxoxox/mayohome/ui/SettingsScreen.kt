@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,10 +129,25 @@ fun SettingsScreen(
             }
         }
         LazyColumn(
-            Modifier.weight(1f).fillMaxHeight().focusRequester(contentFocus).focusGroup(),
+            Modifier.weight(1f).fillMaxHeight(),
             contentPadding = PaddingValues(start = 16.dp, end = 64.dp, top = 76.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Jede Unterseite beginnt mit "Zurück": Dort landet die Auswahl sicher, wenn die Zeile, auf der
+            // sie lag, verschwindet. Sonst springt sie auf eine Kategorie links und schließt die Seite wieder.
+            if (sub != null) {
+                item(key = "back") {
+                    FocusCard(
+                        onClick = { sub = null },
+                        scale = 1.02f,
+                        container = Color.Transparent,
+                        modifier = Modifier.focusRequester(contentFocus).heightIn(min = 40.dp),
+                    ) {
+                        Text("‹  Zurück", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Palette.Muted,
+                            modifier = Modifier.align(Alignment.CenterStart).padding(horizontal = 14.dp))
+                    }
+                }
+            }
             when (sub) {
                 null -> when (category) {
                     "start" -> homeItems(vm, settings) { sub = it }

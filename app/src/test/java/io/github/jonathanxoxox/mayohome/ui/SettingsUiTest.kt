@@ -1,6 +1,7 @@
 package io.github.jonathanxoxox.mayohome.ui
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.performSemanticsAction
@@ -46,7 +47,11 @@ class SettingsUiTest {
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("Diagnose"))
         click("Diagnose")
         rule.waitForIdle()
+        rule.mainClock.advanceTimeBy(500)
+        rule.waitForIdle()
         rule.onNodeWithText("Gewählte Sender").assertExists()
+        // Die Auswahl muss in der Unterseite liegen, nicht auf einer Kategorie links.
+        rule.onNode(hasClickAction() and hasText("Zurück", substring = true)).assertIsFocused()
         assertFalse(closed())
     }
 
