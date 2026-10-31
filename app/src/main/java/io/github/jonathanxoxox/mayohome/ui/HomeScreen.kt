@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import io.github.jonathanxoxox.mayohome.data.AppEntry
-import io.github.jonathanxoxox.mayohome.data.MayoSnapshot
 import io.github.jonathanxoxox.mayohome.data.Settings
 import io.github.jonathanxoxox.mayohome.data.TvSnapshot
 
@@ -62,7 +61,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val apps by vm.apps.collectAsState()
     val tv by vm.tv.collectAsState()
-    val mayo by vm.mayo.collectAsState()
     val pinned = remember(apps, settings.favoriteApps) { homeApps(apps, settings) }
     val channels = remember(tv, settings, pinned) {
         val order = pinned.map { it.packageName }
@@ -70,23 +68,24 @@ fun HomeScreen(
         else tv.channels.filter { it.key !in settings.hiddenAppChannels }
             .sortedBy { ch -> order.indexOf(ch.packageName).let { if (it < 0) Int.MAX_VALUE else it } }
     }
-    fun backdrop(image: Any?) { if (settings.startBackdrop) onBackdrop(image) }
-    LaunchedEffect(settings.startBackdrop) { if (!settings.startBackdrop) onBackdrop(null) }
+    fun backdrop(image: Any?) { if (settings.startBg == "content") onBackdrop(image) }
+    LaunchedEffect(settings.startBg) { if (settings.startBg != "content") onBackdrop(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 18.dp, bottom = 48.dp),
-        verticalArrangement = Arrangement.spacedBy(26.dp),
+        contentPadding = PaddingValues(top = 26.dp, bottom = 56.dp),
+        verticalArrangement = Arrangement.spacedBy(30.dp),
     ) {
         item(key = "apps") {
-            Row(Modifier.padding(horizontal = 48.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(Modifier.padding(horizontal = 48.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 pinned.forEachIndexed { i, app ->
                     Box(Modifier.weight(1f)) {
                         AppTile(
                             app = app,
                             labels = "never",
                             modifier = if (i == 0) Modifier.focusRequester(firstFocus) else Modifier,
-                            onFocus = { if (it) backdrop(appBackdrop(app.packageName, tv, mayo)) },
+                            // Keine Vorschau an den Apps: OK öffnet die App, nicht einen bestimmten Inhalt.
+                            onFocus = { if (it) backdrop(null) },
                             onClick = { vm.launchApp(context, app) },
                         )
                     }
@@ -111,7 +110,7 @@ fun HomeScreen(
             item(key = "watchnext") {
                 ShelfRow("Weiter schauen", tv.watchNext.take(20), key = { it.id }) { p ->
                     PosterTile(
-                        image = p.posterUri, title = p.title, subtitle = "", titleOnFocus = true,
+                        image = p.posterUri, title = p.title, subtitle = "", titleOnFocus = true, width = 196.dp,
                         progress = p.progress, onClick = { vm.openProgram(context, p) },
                         onFocus = { if (it) backdrop(p.posterUri) },
                     )
@@ -125,7 +124,7 @@ fun HomeScreen(
                     val wide = p.aspect >= 1f
                     PosterTile(
                         image = p.posterUri, title = p.title, subtitle = "", titleOnFocus = true,
-                        width = if (wide) 180.dp else 110.dp, aspect = if (wide) 16f / 9f else 2f / 3f,
+                        width = if (wide) 196.dp else 112.dp, aspect = if (wide) 16f / 9f else 2f / 3f,
                         progress = p.progress, live = p.live, onClick = { vm.openProgram(context, p) },
                         onFocus = { if (it) backdrop(p.posterUri) },
                     )
@@ -133,11 +132,4 @@ fun HomeScreen(
             }
         }
     }
-}
-
-/** Hintergrund, wenn eine App ausgewählt ist: das, was in ihr als Nächstes wartet; sonst keiner. */
-private fun appBackdrop(pkg: String, tv: TvSnapshot, mayo: MayoSnapshot): Any? {
-    tv.watchNext.firstOrNull { it.packageName == pkg && it.aspect >= 1.2f }?.posterUri?.let { return it }
-    tv.channels.firstOrNull { it.packageName == pkg }?.programs?.firstOrNull { it.aspect >= 1.2f }?.posterUri?.let { return it }
-    return null
 }

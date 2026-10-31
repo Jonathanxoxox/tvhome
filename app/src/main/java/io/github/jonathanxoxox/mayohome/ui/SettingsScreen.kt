@@ -243,7 +243,10 @@ private fun LazyListScope.homeItems(vm: HomeViewModel, s: Settings, open: (Strin
         SettingRow("Apps auf der Startseite", "Am besten vier; lange OK auf eine App im Reiter Apps geht auch",
             value = homeApps(apps, s).joinToString(", ") { it.label }) { open("homeApps") }
     }
-    item { SettingRow("Bild im Hintergrund", "Das ausgewählte Video oder die Folge liegt gedimmt hinter der Seite", toggle = s.startBackdrop) { vm.updateSettings { it.copy(startBackdrop = !it.startBackdrop) } } }
+    item {
+        val bgs = linkedMapOf("aurora" to "Sanfter Verlauf", "plain" to "Schlicht", "content" to "Bild des Ausgewählten")
+        SettingRow("Hintergrund", value = bgs[s.startBg]) { vm.updateSettings { it.copy(startBg = next(bgs.keys.toList(), it.startBg.takeIf { b -> b in bgs } ?: "aurora")) } }
+    }
     item { SectionTitle("Kanäle der Apps") }
     item { SettingRow("Kanäle unter den Apps zeigen", "Reihen, die Apps für den Startbildschirm anbieten (wie in Projectivy)", toggle = s.showAppChannels) { vm.updateSettings { it.copy(showAppChannels = !it.showAppChannels) } } }
     item { SettingRow("Einzelne Kanäle ein- und ausblenden", value = "${s.hiddenAppChannels.size} ausgeblendet") { open("appChannels") } }
@@ -523,8 +526,8 @@ private fun LazyListScope.lookItems(vm: HomeViewModel, s: Settings) {
     item { SectionTitle("Farben") }
     item { SettingRow("Akzentfarbe", "Für Fortschrittsbalken und Schalter", value = Palette.Accents[s.accent]?.first) { vm.updateSettings { it.copy(accent = next(Palette.Accents.keys.toList(), it.accent)) } } }
     item {
-        val bgs = mapOf("black" to "Schwarz", "petrol" to "Petrol", "night" to "Nachtblau", "hero" to "Bild des Posters")
-        SettingRow("Hintergrund", value = bgs[s.background]) { vm.updateSettings { it.copy(background = next(bgs.keys.toList(), it.background)) } }
+        val bgs = mapOf("black" to "Schwarz", "aurora" to "Sanfter Verlauf", "petrol" to "Petrol", "night" to "Nachtblau", "hero" to "Bild des Posters")
+        SettingRow("Hintergrund für Live TV und Apps", value = bgs[s.background]) { vm.updateSettings { it.copy(background = next(bgs.keys.toList(), it.background)) } }
     }
     item { SectionTitle("Form und Bewegung") }
     item {

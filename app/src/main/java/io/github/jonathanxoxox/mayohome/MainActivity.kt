@@ -49,6 +49,7 @@ import coil3.compose.AsyncImage
 import io.github.jonathanxoxox.mayohome.data.TvChannelsRepository
 import io.github.jonathanxoxox.mayohome.system.Launcher
 import io.github.jonathanxoxox.mayohome.ui.AppsScreen
+import io.github.jonathanxoxox.mayohome.ui.AuroraBackground
 import io.github.jonathanxoxox.mayohome.ui.Clock
 import io.github.jonathanxoxox.mayohome.ui.FocusCard
 import io.github.jonathanxoxox.mayohome.ui.HomeViewModel
@@ -169,18 +170,22 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
     }
 
     Box(Modifier.fillMaxSize().background(look.page)) {
-        // Hintergrund: auf Start das Bild des ausgewählten Inhalts, sonst (falls eingestellt) das des Posters.
+        // Hintergrund: auf Start nach Einstellung (sanfter Verlauf, schlicht oder Bild des Ausgewählten),
+        // auf den anderen Reitern nach "Aussehen".
+        if ((tab == "start" && settings.startBg == "aurora") || (tab != "start" && look.aurora)) {
+            AuroraBackground(Modifier.fillMaxSize())
+        }
         val backdrop: Any? = when {
-            tab == "start" -> startImage
+            tab == "start" -> startImage.takeIf { settings.startBg == "content" }
             look.heroBackdrop -> heroImage
             else -> null
         }
-        Crossfade(targetState = backdrop, animationSpec = tween(600), label = "backdrop") { image ->
+        Crossfade(targetState = backdrop, animationSpec = tween(700), label = "backdrop") { image ->
             if (image != null) {
                 Box(Modifier.fillMaxSize()) {
-                    AsyncImage(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(0.42f))
-                    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to look.page.copy(alpha = 0.75f), 0.6f to look.page.copy(alpha = 0.2f), 1f to Color.Transparent)))
-                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to look.page.copy(alpha = 0.55f), 0.35f to look.page.copy(alpha = 0.35f), 1f to look.page)))
+                    AsyncImage(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(0.28f))
+                    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to look.page.copy(alpha = 0.8f), 0.6f to look.page.copy(alpha = 0.35f), 1f to look.page.copy(alpha = 0.1f))))
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to look.page.copy(alpha = 0.6f), 0.4f to look.page.copy(alpha = 0.45f), 1f to look.page)))
                 }
             }
         }

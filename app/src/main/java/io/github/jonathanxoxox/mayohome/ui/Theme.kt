@@ -29,6 +29,7 @@ object Palette {
         "petrol" to Color(0xFF0B262A),
         "night" to Color(0xFF0E1322),
         "hero" to Color(0xFF0D1113),
+        "aurora" to Color(0xFF0B1214),
     )
     val Accents = linkedMapOf(
         "white" to ("Weiß" to Color(0xFFF5F7F7)),
@@ -48,6 +49,7 @@ data class Look(
     val focusScale: Float,
     val animations: Boolean,
     val heroBackdrop: Boolean,
+    val aurora: Boolean,
 ) {
     companion object {
         fun from(s: Settings) = Look(
@@ -57,6 +59,7 @@ data class Look(
             focusScale = when (s.focusScale) { "off" -> 1f; "small" -> 1.04f; "large" -> 1.12f; else -> 1.08f },
             animations = s.animations,
             heroBackdrop = s.background == "hero",
+            aurora = s.background == "aurora",
         )
     }
 }
@@ -113,4 +116,27 @@ private val InterTypography: Typography = Typography().let { t ->
         labelMedium = t.labelMedium.copy(fontFamily = Inter),
         labelSmall = t.labelSmall.copy(fontFamily = Inter),
     )
+}
+
+/**
+ * Ruhiger Hintergrund: weiche Lichtflecken in Petrol und Nachtblau über dem dunklen Grund, wie
+ * Abendlicht hinter einer Glasscheibe. Kein Bild, nichts, was mit dem Inhalt wechselt.
+ */
+@androidx.compose.runtime.Composable
+fun AuroraBackground(modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier) {
+    androidx.compose.foundation.Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        fun glow(x: Float, y: Float, r: Float, color: Color) = drawRect(
+            androidx.compose.ui.graphics.Brush.radialGradient(
+                listOf(color, color.copy(alpha = 0f)),
+                center = androidx.compose.ui.geometry.Offset(x, y),
+                radius = r,
+            ),
+        )
+        glow(w * 0.12f, h * -0.05f, w * 0.62f, Color(0xFF0F5158).copy(alpha = 0.70f))
+        glow(w * 0.92f, h * 1.05f, w * 0.58f, Color(0xFF1A2A52).copy(alpha = 0.65f))
+        glow(w * 0.70f, h * 0.18f, w * 0.30f, Color(0xFF5FE0D2).copy(alpha = 0.07f))
+        glow(w * 0.30f, h * 0.95f, w * 0.35f, Color(0xFF123B3F).copy(alpha = 0.45f))
+    }
 }
