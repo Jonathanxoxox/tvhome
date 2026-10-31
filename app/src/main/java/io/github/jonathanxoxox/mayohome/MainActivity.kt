@@ -47,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import io.github.jonathanxoxox.mayohome.data.TvChannelsRepository
+import io.github.jonathanxoxox.mayohome.system.CrashLog
 import io.github.jonathanxoxox.mayohome.system.Launcher
 import io.github.jonathanxoxox.mayohome.ui.AppsScreen
 import io.github.jonathanxoxox.mayohome.ui.AuroraBackground
@@ -85,6 +86,10 @@ class MainActivity : ComponentActivity() {
             addDataScheme("package")
         }
         ContextCompat.registerReceiver(this, packageReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
+        CrashLog.takeUnseen(this)?.let { crash ->
+            val first = crash.lines().drop(1).firstOrNull().orEmpty().take(160)
+            android.widget.Toast.makeText(this, "Mayo Home ist abgestürzt: $first\nDetails: Einstellungen → Über", android.widget.Toast.LENGTH_LONG).show()
+        }
         setContent {
             val settings by vm.settings.collectAsState()
             val home by homePresses.collectAsState()

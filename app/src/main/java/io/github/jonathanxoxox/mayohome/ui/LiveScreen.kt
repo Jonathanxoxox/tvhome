@@ -172,12 +172,6 @@ private fun MayoChannelTile(
         FocusCard(onClick = { Launcher.start(context, ch.intent()) }, modifier = Modifier.width(width).height(width * 9f / 16f)) {
             if (program?.imageUrl != null) {
                 AsyncImage(model = program.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                if (ch.logo != null) {
-                    Box(Modifier.align(Alignment.TopStart).padding(8.dp).size(width = 44.dp, height = 26.dp)
-                        .background(Color(0xE6F5F7F7), RoundedCornerShape(6.dp)).padding(3.dp)) {
-                        AsyncImage(model = ch.logo, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-                    }
-                }
             } else if (ch.logo != null) {
                 AsyncImage(model = ch.logo, contentDescription = ch.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(22.dp))
             } else {

@@ -35,53 +35,59 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
     val now by vm.now.collectAsState()
     val apps by vm.apps.collectAsState()
     val mayo by vm.mayo.collectAsState()
-    val heroes = remember(settings, tv, epg, now) { Highlights.build(settings, now, tv, epg, vm::channelName) }
-    fun yes(b: Boolean) = if (b) "ja" else "nein"
-    fun appName(pkg: String) = apps.firstOrNull { it.packageName == pkg }?.label ?: pkg
+    // Fehler beim Zusammenstellen zeigen statt abzustürzen: die Diagnose soll gerade dann funktionieren.
+    val blocks: List<Pair<String, List<Pair<String, String>>>> = runCatching {
+        val heroes = Highlights.build(settings, now, tv, epg, vm::channelName)
+        fun yes(b: Boolean) = if (b) "ja" else "nein"
+        fun appName(pkg: String) = apps.firstOrNull { it.packageName == pkg }?.label ?: pkg
 
-    val system = listOf(
-        "Version" to "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-        "Standard-Startbildschirm" to yes(Launcher.isDefaultHome(context)),
-        "Home-Wächter an" to yes(Launcher.isGuardEnabled(context)),
-        "Start aus dem Hintergrund" to yes(Launcher.canDrawOverlays(context)),
-        "TV-Programmdaten erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED),
-        "TV-Listen lesen erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_LISTINGS) == android.content.pm.PackageManager.PERMISSION_GRANTED),
-        "Apps gefunden" to "${apps.size}",
-    )
-    val channels = buildList {
-        add("Kanäle der Apps" to "${tv.channels.size}" + if (tv.permissionMissing) " (keine Berechtigung)" else "")
-        tv.channels.forEach { add("  ${appName(it.packageName)} · ${it.name}" to "${it.programs.size} Einträge") }
-        add("Rohdaten" to vm.tvStats)
-        add("Weiter schauen (System)" to "${tv.watchNext.size}")
-        add("Mayo TV · Für dich" to "${tv.mayo(TvSnapshot.MAYO_FOR_YOU).size}")
-        add("Mayo TV · Favoriten" to "${tv.mayo(TvSnapshot.MAYO_FAVORITES).size}")
-        add("Mayo TV · Zuletzt gesehen" to "${tv.mayoRecent().size}")
-    }
-    val mayoRows = buildList {
-        add("Schnittstelle erreichbar" to yes(mayo.available))
-        add("Kategorien" to "${mayo.categories.size}")
-        add("Gewählte Kategorie" to settings.liveCategoryName.ifBlank { "keine" } + " (${mayo.category.size} Sender)")
-        add("davon mit Programmbild" to "${mayo.category.count { vm.catalogIdFor(it.name) != null }}")
-        add("Zuletzt gesehen" to "${mayo.recent.size}")
-        vm.mayoError?.let { add("Fehler" to it) }
-    }
-    val programmes = epg.values.flatten()
-    val program = buildList {
-        add("Gewählte Sender" to "${settings.channels.size}")
-        add("Sender mit Programm" to "${epg.count { it.value.isNotEmpty() }}")
-        add("Sendungen geladen" to "${programmes.size}")
-        add("davon mit Bild" to "${programmes.count { it.imageUrl != null }}")
-        add("Läuft gerade" to "${programmes.count { it.runningAt(now) }}")
-        vm.epgError?.let { add("Fehler" to it) }
-    }
-    val highlights = heroes.map { "${it.score}" to "${it.kicker} · ${it.title}" }.ifEmpty { listOf("—" to "keine Highlights") }
+        val system = listOf(
+            "Version" to "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            "Standard-Startbildschirm" to yes(Launcher.isDefaultHome(context)),
+            "Home-Wächter an" to yes(Launcher.isGuardEnabled(context)),
+            "Start aus dem Hintergrund" to yes(Launcher.canDrawOverlays(context)),
+            "TV-Programmdaten erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED),
+            "TV-Listen lesen erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_LISTINGS) == android.content.pm.PackageManager.PERMISSION_GRANTED),
+            "Apps gefunden" to "${apps.size}",
+        )
+        val channels = buildList {
+            add("Kanäle der Apps" to "${tv.channels.size}" + if (tv.permissionMissing) " (keine Berechtigung)" else "")
+            tv.channels.forEach { add("  ${appName(it.packageName)} · ${it.name}" to "${it.programs.size} Einträge") }
+            add("Rohdaten" to vm.tvStats)
+            add("Weiter schauen (System)" to "${tv.watchNext.size}")
+            add("Mayo TV · Für dich" to "${tv.mayo(TvSnapshot.MAYO_FOR_YOU).size}")
+            add("Mayo TV · Favoriten" to "${tv.mayo(TvSnapshot.MAYO_FAVORITES).size}")
+            add("Mayo TV · Zuletzt gesehen" to "${tv.mayoRecent().size}")
+        }
+        val mayoRows = buildList {
+            add("Schnittstelle erreichbar" to yes(mayo.available))
+            add("Kategorien" to "${mayo.categories.size}")
+            add("Gewählte Kategorie" to settings.liveCategoryName.ifBlank { "keine" } + " (${mayo.category.size} Sender)")
+            add("davon mit Programmbild" to "${mayo.category.count { vm.catalogIdFor(it.name) != null }}")
+            add("Zuletzt gesehen" to "${mayo.recent.size}")
+            vm.mayoError?.let { add("Fehler" to it) }
+        }
+        val programmes = epg.values.flatten()
+        val program = buildList {
+            add("Gewählte Sender" to "${settings.channels.size}")
+            add("Sender mit Programm" to "${epg.count { it.value.isNotEmpty() }}")
+            add("Sendungen geladen" to "${programmes.size}")
+            add("davon mit Bild" to "${programmes.count { it.imageUrl != null }}")
+            add("Läuft gerade" to "${programmes.count { it.runningAt(now) }}")
+            vm.epgError?.let { add("Fehler" to it) }
+        }
+        val highlights = heroes.map { "${it.score}" to "${it.kicker} · ${it.title}" }.ifEmpty { listOf("—" to "keine Highlights") }
+        listOf(
+            "System" to system,
+            "Mayo TV" to mayoRows,
+            "Kanäle" to channels,
+            "TV-Programm (MagentaTV)" to program,
+            "Highlights im Poster (Punkte · Eintrag)" to highlights,
+        )
+    }.getOrElse { e -> listOf("Fehler in der Diagnose" to listOf(e.javaClass.simpleName to (e.message ?: "").take(300))) }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Block("System", system)
-        Block("Mayo TV", mayoRows)
-        Block("Kanäle", channels)
-        Block("TV-Programm (MagentaTV)", program)
-        Block("Highlights im Poster (Punkte · Eintrag)", highlights)
+        blocks.forEach { (title, rows) -> Block(title, rows) }
     }
 }
 

@@ -674,6 +674,23 @@ private fun LazyListScope.aboutItems(vm: HomeViewModel, s: Settings, open: (Stri
     item { SectionTitle("Hilfe") }
     item { SettingRow("Diagnose", "Was Mayo Home gerade findet: Programm, Kanäle, Berechtigungen") { open("diagnose") } }
     item { SettingRow("Alles neu laden") { vm.refreshApps(); vm.refreshTv(); vm.refreshEpg(force = true) } }
+    item { CrashSection() }
+}
+
+@Composable
+private fun CrashSection() {
+    val context = LocalContext.current
+    var text by remember { mutableStateOf(io.github.jonathanxoxox.mayohome.system.CrashLog.last(context)) }
+    val crash = text ?: return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionTitle("Letzter Absturz")
+        // Auswählbar, damit man mit der Fernbedienung dorthin scrollen und es abfotografieren kann.
+        FocusCard(onClick = {}, scale = 1f, container = Color.Transparent, focusedContainer = Palette.Card, modifier = Modifier.fillMaxWidth()) {
+            Text(crash.lines().take(14).joinToString("\n"), fontSize = 11.sp, lineHeight = 15.sp, color = Palette.Muted,
+                modifier = Modifier.fillMaxWidth().border(1.dp, Palette.Line, RoundedCornerShape(12.dp)).padding(14.dp))
+        }
+        SettingRow("Absturzbericht löschen") { io.github.jonathanxoxox.mayohome.system.CrashLog.clear(context); text = null }
+    }
 }
 
 @Composable
