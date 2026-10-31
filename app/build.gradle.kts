@@ -78,3 +78,21 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     testImplementation("org.json:json:20250517")
 }
+
+// Robolectric braucht für die Oberflächentests eine Android-Laufzeit (~150 MB). Lädt Robolectric sie
+// selbst, bricht das auf CI gelegentlich ab. Darum holt Gradle sie (gecacht, mit Wiederholung) und die
+// Tests laufen offline gegen diese Kopie.
+val robolectricRuntime: Configuration by configurations.creating { isTransitive = false }
+dependencies {
+    robolectricRuntime("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
+}
+val robolectricDeps = layout.buildDirectory.dir("robolectric-deps")
+val copyRobolectricDeps = tasks.register<Copy>("copyRobolectricDeps") {
+    from(robolectricRuntime)
+    into(robolectricDeps)
+}
+tasks.withType<Test>().configureEach {
+    dependsOn(copyRobolectricDeps)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", robolectricDeps.get().asFile.absolutePath)
+}
