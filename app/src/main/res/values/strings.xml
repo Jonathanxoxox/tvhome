@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mayo Home</string>
+    <string name="home_guard_label">Mayo Home: Home-Taste</string>
+    <string name="home_guard_description">Bringt dich mit der Home-Taste immer zu Mayo Home, auch solange der vorinstallierte Startbildschirm noch eingestellt ist. Der Dienst liest keine Inhalte, er bemerkt nur, wenn der alte Startbildschirm erscheint.</string>
+</resources>

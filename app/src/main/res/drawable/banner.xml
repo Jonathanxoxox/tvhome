@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320 × 180: das Banner, das Android TV in App-Listen zeigt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:fillColor="#0D1113" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#F5F7F7" android:pathData="M64,62h44a8,8 0,0 1,8 8v40a8,8 0,0 1,-8 8h-44a8,8 0,0 1,-8 -8v-40a8,8 0,0 1,8 -8z" />
+    <path android:fillColor="#0D1113" android:pathData="M68,72h36v24h-36z" />
+    <path android:fillColor="#F5F7F7" android:pathData="M78,124h16v4h-16z" />
+    <path android:fillColor="#F5F7F7" android:pathData="M136,78h8l10,16l10,-16h8v34h-8v-21l-10,15l-10,-15v21h-8z" />
+    <path android:fillColor="#F5F7F7" android:pathData="M184,78h8v13h14v-13h8v34h-8v-14h-14v14h-8z" />
+    <path android:fillColor="#5FE0D2" android:pathData="M228,104h8v8h-8z" />
+</vector>

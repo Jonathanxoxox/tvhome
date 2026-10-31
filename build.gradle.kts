@@ -1,0 +1,5 @@
+// Kotlin kommt über die eingebaute Kotlin-Unterstützung von AGP 9, daher kein kotlin-android-Plugin.
+plugins {
+    id("com.android.application") version "9.4.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.20" apply false
+}
