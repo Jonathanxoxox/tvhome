@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -125,6 +126,7 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
     var tab by remember { mutableStateOf(settings.startTab) }
     var showSettings by remember { mutableStateOf(false) }
     var heroImage by remember { mutableStateOf<String?>(null) }
+    var startImage by remember { mutableStateOf<Any?>(null) }
     val heroFocus = remember { FocusRequester() }
     val appsFocus = remember { FocusRequester() }
     val homeFocus = remember { FocusRequester() }
@@ -167,9 +169,20 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
     }
 
     Box(Modifier.fillMaxSize().background(look.page)) {
-        if (look.heroBackdrop && heroImage != null) {
-            AsyncImage(heroImage, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(0.22f))
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent, 1f to look.page)))
+        // Hintergrund: auf Start das Bild des ausgewählten Inhalts, sonst (falls eingestellt) das des Posters.
+        val backdrop: Any? = when {
+            tab == "start" -> startImage
+            look.heroBackdrop -> heroImage
+            else -> null
+        }
+        Crossfade(targetState = backdrop, animationSpec = tween(600), label = "backdrop") { image ->
+            if (image != null) {
+                Box(Modifier.fillMaxSize()) {
+                    AsyncImage(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(0.42f))
+                    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to look.page.copy(alpha = 0.75f), 0.6f to look.page.copy(alpha = 0.2f), 1f to Color.Transparent)))
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to look.page.copy(alpha = 0.55f), 0.35f to look.page.copy(alpha = 0.35f), 1f to look.page)))
+                }
+            }
         }
         Column(Modifier.fillMaxSize()) {
             val update by vm.update.collectAsState()
@@ -185,7 +198,7 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
             Crossfade(targetState = tab, label = "tab") { current ->
                 when (current) {
                     "apps" -> AppsScreen(vm, settings, appsFocus)
-                    "start" -> HomeScreen(vm, settings, homeFocus, onRequestTvPermission)
+                    "start" -> HomeScreen(vm, settings, homeFocus, onRequestTvPermission, onBackdrop = { startImage = it })
                     else -> LiveScreen(
                         vm = vm,
                         settings = settings,

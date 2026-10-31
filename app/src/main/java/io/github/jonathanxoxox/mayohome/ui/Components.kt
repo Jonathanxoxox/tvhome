@@ -119,9 +119,17 @@ fun PosterTile(
     badge: String? = null,
     fallback: String = title,
     onLongClick: (() -> Unit)? = null,
+    /** Nur beim ausgewählten Eintrag den Titel zeigen, ohne zweite Zeile (ruhiger Look auf Start). */
+    titleOnFocus: Boolean = false,
+    onFocus: (Boolean) -> Unit = {},
 ) {
+    var focused by remember { mutableStateOf(false) }
     Column(Modifier.width(width), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        FocusCard(onClick = onClick, onLongClick = onLongClick, modifier = Modifier.width(width).height(width / aspect)) {
+        FocusCard(
+            onClick = onClick, onLongClick = onLongClick,
+            onFocus = { focused = it; onFocus(it) },
+            modifier = Modifier.width(width).height(width / aspect),
+        ) {
             if (image != null) {
                 AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             } else {
@@ -145,6 +153,12 @@ fun PosterTile(
                     Box(Modifier.fillMaxHeight().fillMaxWidth(progress).background(LocalLook.current.accent))
                 }
             }
+        }
+        if (titleOnFocus) {
+            // Platz immer freihalten, damit die Reihe beim Wandern nicht springt.
+            Text(title.ifBlank { " " }, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = if (focused) Palette.Text else Color.Transparent)
+            return@Column
         }
         if (title.isNotBlank()) {
             Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Palette.Text)

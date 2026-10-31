@@ -243,6 +243,7 @@ private fun LazyListScope.homeItems(vm: HomeViewModel, s: Settings, open: (Strin
         SettingRow("Apps auf der Startseite", "Am besten vier; lange OK auf eine App im Reiter Apps geht auch",
             value = homeApps(apps, s).joinToString(", ") { it.label }) { open("homeApps") }
     }
+    item { SettingRow("Bild im Hintergrund", "Das ausgewählte Video oder die Folge liegt gedimmt hinter der Seite", toggle = s.startBackdrop) { vm.updateSettings { it.copy(startBackdrop = !it.startBackdrop) } } }
     item { SectionTitle("Kanäle der Apps") }
     item { SettingRow("Kanäle unter den Apps zeigen", "Reihen, die Apps für den Startbildschirm anbieten (wie in Projectivy)", toggle = s.showAppChannels) { vm.updateSettings { it.copy(showAppChannels = !it.showAppChannels) } } }
     item { SettingRow("Einzelne Kanäle ein- und ausblenden", value = "${s.hiddenAppChannels.size} ausgeblendet") { open("appChannels") } }

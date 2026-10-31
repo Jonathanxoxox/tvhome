@@ -5,10 +5,10 @@
 Ein eigener Startbildschirm für Android TV, gebaut für die Nokia Streaming Box 8010 und alles, was
 darauf läuft: Mayo TV, TizenTube, Nuvio.
 
-- **Start**: deine wichtigsten Apps groß in einer Reihe (Vorschlag: Mayo TV, YouTube/TizenTube,
-  Nuvio, Spotify). Darüber das „Top Shelf“: Es zeigt, was die ausgewählte App gerade bietet (bei
-  Mayo TV ein laufendes Spiel oder den zuletzt gesehenen Sender, bei Nuvio die angefangene Folge).
-  Darunter „Weiter schauen“ und die Kanäle, die deine Apps für den Startbildschirm anbieten.
+- **Start**: ruhig gehalten. Oben nur die Banner deiner wichtigsten Apps (Vorschlag: Mayo TV,
+  YouTube/TizenTube, Nuvio, Spotify), darunter „Weiter schauen“ und die Kanäle deiner Apps. Das Bild
+  des ausgewählten Inhalts liegt gedimmt im Hintergrund der Seite; Titel erscheinen nur beim
+  ausgewählten Eintrag.
 - **Live TV**: ein großes Poster mit den Highlights des Moments (Spiele deiner Teams zuerst, dann
   Sport, Filme und Serien mit dem Bild aus der TV-Zeitschrift). Darunter eine Kategorie deiner
   Playlist aus Mayo TV (z. B. „Magenta TV“) und „Zuletzt gesehen“.

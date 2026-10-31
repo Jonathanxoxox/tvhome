@@ -111,6 +111,7 @@ fun AppTile(
     modifier: Modifier = Modifier,
     width: Dp? = null,
     onLongClick: (() -> Unit)? = null,
+    onFocus: (Boolean) -> Unit = {},
 ) {
     var focused by remember { mutableStateOf(false) }
     val sized = if (width != null) modifier.width(width) else modifier.fillMaxWidth()
@@ -118,7 +119,7 @@ fun AppTile(
         FocusCard(
             onClick = onClick,
             onLongClick = onLongClick,
-            onFocus = { focused = it },
+            onFocus = { focused = it; onFocus(it) },
             modifier = Modifier.fillMaxWidth().aspectRatio16x9(),
         ) {
             if (app.banner != null) {
@@ -130,6 +131,7 @@ fun AppTile(
                 }
             }
         }
+        if (labels == "never") return@Column
         val showLabel = labels == "always" || (labels == "focus" && focused)
         Text(
             app.label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,

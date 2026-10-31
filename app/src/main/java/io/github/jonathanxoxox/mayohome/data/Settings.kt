@@ -63,6 +63,7 @@ data class Settings(
     val liveCategoryName: String = "",
     // Start: die wichtigsten Apps (Paketnamen, in dieser Reihenfolge); leer = Vorschlag
     val favoriteApps: List<String> = emptyList(),
+    val startBackdrop: Boolean = true,
     // Sender aus dem Katalog (MagentaTV-IDs), in dieser Reihenfolge
     val channels: List<String> = DEFAULT_CHANNELS,
     // Apps
@@ -106,6 +107,7 @@ data class Settings(
         put("liveCategoryId", liveCategoryId)
         put("liveCategoryName", liveCategoryName)
         put("favoriteApps", JSONArray(favoriteApps))
+        put("startBackdrop", startBackdrop)
         put("channels", JSONArray(channels))
         put("appColumns", appColumns)
         put("appLabels", appLabels)
@@ -159,6 +161,7 @@ data class Settings(
                 liveCategoryId = o.optLong("liveCategoryId", d.liveCategoryId),
                 liveCategoryName = o.optString("liveCategoryName", d.liveCategoryName),
                 favoriteApps = strings("favoriteApps", d.favoriteApps),
+                startBackdrop = o.optBoolean("startBackdrop", d.startBackdrop),
                 channels = strings("channels", d.channels),
                 appColumns = o.optInt("appColumns", d.appColumns).coerceIn(4, 8),
                 appLabels = o.optString("appLabels", d.appLabels),
