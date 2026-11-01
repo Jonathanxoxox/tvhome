@@ -211,6 +211,11 @@ private fun <T> next(options: List<T>, current: T): T = options[(options.indexOf
 // ---------- Startseite ----------
 
 private fun LazyListScope.startItems(vm: HomeViewModel, s: Settings, open: (String) -> Unit) {
+    item { SectionTitle("Reiter") }
+    item {
+        SettingRow("Reiter öffnet Mayo TV", "OK auf „Live TV“ startet Mayo TV; die Home-Taste bringt dich zurück. Aus: eigene Seite mit Poster und Reihen.",
+            toggle = s.liveOpensMayo) { vm.updateSettings { it.copy(liveOpensMayo = !it.liveOpensMayo) } }
+    }
     item { SectionTitle("Kategorie unter dem Poster") }
     item {
         SettingRow("Kategorie aus Mayo TV", "Eine Gruppe deiner Playlist, z. B. „Magenta TV“",

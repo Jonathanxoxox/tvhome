@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -130,11 +131,13 @@ private fun RowHandle(c: RowControls) {
     var active by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     Column(
-        Modifier.padding(start = 8.dp).width(34.dp).onFocusChanged { active = it.hasFocus },
+        Modifier.padding(start = 8.dp).width(34.dp).onFocusChanged { active = it.hasFocus }
+            .alpha(if (active) 1f else 0f),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val alpha = if (active) 1f else 0.25f
+        // Unsichtbar, bis man mit ◀ vom ersten Eintrag hineingeht; sie liegen im linken Rand.
+        val alpha = 1f
         c.onUp?.let { HandleButton(Glyph.UP, alpha, onClick = it) }
         c.onDown?.let { HandleButton(Glyph.DOWN, alpha, onClick = it) }
         c.onHide?.let { HandleButton(Glyph.CLOSE, alpha, onClick = it) }

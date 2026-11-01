@@ -60,6 +60,8 @@ data class Settings(
     val rows: List<String> = listOf("category", "recent"),
     val hiddenRows: Set<String> = emptySet(),
     val liveCategoryId: Long = -1L,
+    /** Der Reiter "Live TV" öffnet Mayo TV direkt, statt eine eigene Seite zu zeigen. */
+    val liveOpensMayo: Boolean = true,
     val liveCategoryName: String = "",
     // Start: die wichtigsten Apps (Paketnamen, in dieser Reihenfolge); leer = Vorschlag
     val favoriteApps: List<String> = emptyList(),
@@ -108,6 +110,7 @@ data class Settings(
         put("liveRows", JSONArray(rows))
         put("liveHiddenRows", JSONArray(hiddenRows.toList()))
         put("liveCategoryId", liveCategoryId)
+        put("liveOpensMayo", liveOpensMayo)
         put("liveCategoryName", liveCategoryName)
         put("favoriteApps", JSONArray(favoriteApps))
         put("startRowOrder", JSONArray(startRowOrder))
@@ -163,6 +166,7 @@ data class Settings(
                 rows = strings("liveRows", d.rows),
                 hiddenRows = strings("liveHiddenRows", emptyList()).toSet(),
                 liveCategoryId = o.optLong("liveCategoryId", d.liveCategoryId),
+                liveOpensMayo = o.optBoolean("liveOpensMayo", d.liveOpensMayo),
                 liveCategoryName = o.optString("liveCategoryName", d.liveCategoryName),
                 favoriteApps = strings("favoriteApps", d.favoriteApps),
                 startRowOrder = strings("startRowOrder", d.startRowOrder),

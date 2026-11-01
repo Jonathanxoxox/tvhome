@@ -144,6 +144,14 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
         }
     }
     val look = LocalLook.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // "Live TV" öffnet Mayo TV direkt, wenn eingestellt und installiert; sonst die eigene Seite.
+    val mayoIntent = remember(settings.liveOpensMayo) {
+        if (!settings.liveOpensMayo) null
+        else context.packageManager.getLeanbackLaunchIntentForPackage(io.github.jonathanxoxox.mayohome.data.TvSnapshot.MAYO_TV)
+            ?: context.packageManager.getLaunchIntentForPackage(io.github.jonathanxoxox.mayohome.data.TvSnapshot.MAYO_TV)
+    }
+    val mayoLauncher: (() -> Unit)? = mayoIntent?.let { intent -> { Launcher.start(context, android.content.Intent(intent)); Unit } }
 
     // Home-Taste: zurück auf den Start-Reiter, Fokus auf die erste App.
     LaunchedEffect(homePresses) {
@@ -204,6 +212,7 @@ private fun HomeRoot(vm: HomeViewModel, homePresses: Int, onRequestTvPermission:
                 showDate = settings.showDate,
                 update = update,
                 onUpdate = { vm.installUpdate() },
+                onOpenLive = mayoLauncher,
             )
             Crossfade(targetState = tab, label = "tab") { current ->
                 when (current) {
@@ -232,6 +241,7 @@ private fun TopBar(
     showDate: Boolean,
     update: HomeViewModel.UpdateState,
     onUpdate: () -> Unit,
+    onOpenLive: (() -> Unit)?,
 ) {
     Box(Modifier.fillMaxWidth().padding(start = 48.dp, end = 48.dp, top = 22.dp, bottom = 14.dp)) {
         Row(
@@ -239,7 +249,8 @@ private fun TopBar(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             TabPill("Start", tab == "start") { onTab("start") }
-            TabPill("Live TV", tab == "live") { onTab("live") }
+            // Öffnet der Reiter Mayo TV, dann erst auf OK, nicht schon beim Darüberwandern.
+            TabPill("Live TV", tab == "live", selectOnFocus = onOpenLive == null) { onOpenLive?.invoke() ?: onTab("live") }
             TabPill("Apps", tab == "apps") { onTab("apps") }
         }
         Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -264,10 +275,10 @@ private fun TopBar(
 }
 
 @Composable
-private fun TabPill(label: String, selected: Boolean, onSelect: () -> Unit) {
+private fun TabPill(label: String, selected: Boolean, selectOnFocus: Boolean = true, onSelect: () -> Unit) {
     FocusCard(
         onClick = onSelect,
-        onFocus = { if (it) onSelect() },
+        onFocus = { if (it && selectOnFocus) onSelect() },
         corner = 50.dp,
         scale = 1.04f,
         container = if (selected) Palette.Text else Color.Transparent,
