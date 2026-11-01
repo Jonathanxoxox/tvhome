@@ -82,7 +82,13 @@ object Launcher {
     private const val WRITE_SECURE = "android.permission.WRITE_SECURE_SETTINGS"
 
     fun homeAdbCommand(context: Context): String =
-        "adb shell cmd package set-home-activity ${context.packageName}/.MainActivity"
+        "adb shell pm disable-user --user 0 com.google.android.tvlauncher\n" +
+            "adb shell cmd package set-home-activity ${context.packageName}/.MainActivity"
+
+    /** Die rohe Liste der eingeschalteten Bedienungshilfen, für die Diagnose. */
+    fun accessibilityList(context: Context): String =
+        Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+            .split(':').filter { it.isNotBlank() }.joinToString("\n") { it.substringBefore('/') }.ifBlank { "leer" }
 
     fun overlayAdbCommand(context: Context): String =
         "adb shell appops set ${context.packageName} SYSTEM_ALERT_WINDOW allow"

@@ -616,7 +616,7 @@ private fun LauncherSection(vm: HomeViewModel, s: Settings, onRequestTvPermissio
         SectionTitle("Per ADB (falls ein Menü fehlt)")
         InfoBox(
             "Home-Wächter (einmal erlauben, danach schaltet Mayo Home ihn selbst ein, ohne Projectivy oder Button Mapper abzuschalten):\n${Launcher.guardAdbCommand(context)}\n\n" +
-                "Mayo Home zum Standard machen:\n${Launcher.homeAdbCommand(context)}\n\n" +
+                "Ohne Bedienungshilfe (empfohlen): alten Startbildschirm abschalten und Mayo Home zum Standard machen:\n${Launcher.homeAdbCommand(context)}\nRückgängig: adb shell pm enable com.google.android.tvlauncher\n\n" +
                 "Start aus dem Hintergrund:\n${Launcher.overlayAdbCommand(context)}\n\n" +
                 "TV-Programmdaten:\n${Launcher.epgAdbCommand(context)}",
         )

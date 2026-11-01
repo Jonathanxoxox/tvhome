@@ -45,6 +45,7 @@ fun DiagnoseSection(vm: HomeViewModel, settings: Settings) {
             "Version" to "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
             "Standard-Startbildschirm" to yes(Launcher.isDefaultHome(context)),
             "Home-Wächter an" to yes(Launcher.isGuardEnabled(context)),
+            "Bedienungshilfen an" to Launcher.accessibilityList(context),
             "Start aus dem Hintergrund" to yes(Launcher.canDrawOverlays(context)),
             "TV-Programmdaten erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_EPG) == android.content.pm.PackageManager.PERMISSION_GRANTED),
             "TV-Listen lesen erlaubt" to yes(context.checkSelfPermission(TvChannelsRepository.READ_LISTINGS) == android.content.pm.PackageManager.PERMISSION_GRANTED),

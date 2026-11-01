@@ -117,7 +117,9 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         vm.onResume()
         // Selbstheilung: Hat Android den Home-Wächter abgeschaltet, ihn wieder eintragen (nur mit ADB-Erlaubnis).
-        if (vm.settings.value.homeOverride && !Launcher.isGuardEnabled(this)) Launcher.enableGuard(this)
+        // Nicht, wenn Mayo Home schon Standard-Startbildschirm ist: dann braucht es den Wächter nicht, und die
+        // Liste der Bedienungshilfen bleibt unangetastet.
+        if (vm.settings.value.homeOverride && !Launcher.isDefaultHome(this) && !Launcher.isGuardEnabled(this)) Launcher.enableGuard(this)
     }
 
     override fun onDestroy() {
